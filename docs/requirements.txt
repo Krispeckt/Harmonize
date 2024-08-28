@@ -1,0 +1,10 @@
+sphinx
+pygments
+sphinx-book-theme
+enum-tools
+sphinx_toolbox
+pip>=24.2
+disnake>=2.9.2
+aiohttp>=3.10.4
+loguru>=0.6.0
+async-timeout>=4.0.2
