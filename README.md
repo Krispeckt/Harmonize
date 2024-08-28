@@ -40,7 +40,7 @@ pip install git+https://github.com/Krispeckt/Harmonize.git
 Default
 
 ```shell
-pip install harmonize.dev
+pip install harmonize.py
 ```
 
 </h4>

@@ -41,4 +41,4 @@ To use Harmonize, first install it using pip:
 
 .. code-block:: console
 
-   (.venv) $ pip install harmonize.dev
+   (.venv) $ pip install harmonize.py
