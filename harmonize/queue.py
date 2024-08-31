@@ -45,12 +45,12 @@ class Queue:
     @property
     def history(self) -> list[Track]:
         """
-        Returns a copy of the history list, which contains all the tracks that have been played in the queue.
+        Gets the list of tracks that have been played in the queue.
 
         Returns:
             list[Track]: A list of Track objects representing the history of tracks played in the queue.
         """
-        return self._history.copy()
+        return self._history
 
     @property
     def tracks(self) -> list[Track]:
