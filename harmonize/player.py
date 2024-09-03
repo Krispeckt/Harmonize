@@ -200,7 +200,7 @@ class Player(VoiceProtocol):
             except RequestError as error:
                 logger.error(
                     'Encountered a request error whilst '
-                    f'starting a new track on guild ({self.guild.id})'
+                    f'starting a new track on guild ({self.guild.id}) {error}'
                 )
 
     async def update_state(self, state: dict) -> None:

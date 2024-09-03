@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Union, Optional
+import struct
+from typing import Union, Optional, Callable
 
 from harmonize.abstract.serializable import Serializable
 from harmonize.exceptions import InvalidData
@@ -8,6 +9,9 @@ from harmonize.exceptions import InvalidData
 __all__ = (
     "Track",
 )
+
+from harmonize.utils.reader import DataReader
+from harmonize.utils.source_decoders import DEFAULT_DECODER_MAPPING
 
 
 class Track(Serializable):
@@ -67,6 +71,66 @@ class Track(Serializable):
             self.extra: dict[str, any] = extra  # type: ignore
         except KeyError as error:
             raise InvalidData(f'Cannot build a track from partial data! (Missing key: {error.args[0]})') from error
+
+    @classmethod
+    def decode_track(
+            cls: type(Track),
+            track: str,
+            source_decoders: dict[str, Callable[[DataReader], dict[str, any]]] = None
+    ) -> Track:
+        decoders = DEFAULT_DECODER_MAPPING.copy()
+
+        if source_decoders is not None:
+            decoders.update(source_decoders)
+
+        reader = DataReader(track)
+
+        flags = (reader.read_int() & 0xC0000000) >> 30
+        version, = struct.unpack('B', reader.read_byte()) if flags & 1 != 0 else (1,)
+
+        title = reader.read_utfm()
+        author = reader.read_utfm()
+        length = reader.read_long()
+        identifier = reader.read_utf().decode()
+        is_stream = reader.read_boolean()
+        uri = reader.read_nullable_utf()
+        extra_fields = {}
+
+        if version == 3:
+            extra_fields['artworkUrl'] = reader.read_nullable_utf()
+            extra_fields['isrc'] = reader.read_nullable_utf()
+
+        source = reader.read_utf().decode()
+        source_specific_fields = {}
+
+        if source in decoders:
+            source_specific_fields.update(decoders[source](reader))
+
+        position = reader.read_long()
+
+        track_object = {
+            'encoded': track,
+            'info': {
+                'identifier': identifier,
+                'isSeekable': not is_stream,
+                'title': title,
+                'author': author,
+                'length': length,
+                'isStream': is_stream,
+                'position': position,
+                'uri': uri,
+                'sourceName': source,
+                **extra_fields
+            },
+            'pluginInfo': source_specific_fields,
+            'userData': {}
+        }
+
+        return cls(
+            track_object,
+            position=position,
+            encoder_version=version
+        )
 
     def __getitem__(self, name: str) -> any:
         return super().__getattribute__(name)

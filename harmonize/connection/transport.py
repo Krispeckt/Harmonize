@@ -146,7 +146,7 @@ class Transport:
             self.dispatch(
                 "track_end",
                 player,
-                player.queue.current,
+                player.queue.history[0],
                 end_reason
             )
         elif event_type == 'TrackExceptionEvent':
