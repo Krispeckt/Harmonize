@@ -1,38 +1,65 @@
+from __future__ import annotations
+
 from typing import Optional, Union
 
 from harmonize.abstract import Serializable
-from harmonize.enums import LoadType
+from harmonize.enums import LoadType, Severity
 from harmonize.objects.playlist_info import PlaylistInfo
 from harmonize.objects.track import Track
 
 __all__ = (
     "LoadResult",
     "Track",
-    "PlaylistInfo"
+    "PlaylistInfo",
+    "LoadError"
 )
 
 
-class _LoadError:
+class LoadError:
+    """
+    Represents a load error.
+
+    Attributes
+    ----------
+        message : str
+            The error message.
+        severity : :class:`harmonize.enums.Severity`
+            The severity of the error.
+        cause : str
+            The cause of the error.
+
+    """
+
     def __init__(self, error: dict[str, any]) -> None:
-        """
-        Initializes a new instance of the _LoadError class.
-
-        Args:
-            error (dict[str, any]): A dictionary containing error information.
-                The dictionary must contain the following keys:
-                    - 'message' (str): The error message.
-                    - 'severity' (str): The severity of the error.
-                    - 'cause' (str): The cause of the error.
-
-        Returns:
-            None
-        """
         self.message: str = error['message']
-        self.severity: str = error['severity']
+        self.severity: Severity = Severity(error['severity'])
         self.cause: str = error['cause']
 
 
 class LoadResult(Serializable):
+    """
+    Represents the result of a load operation.
+
+    Operations
+    ----------
+        .. describe:: x[key]
+
+            Returns the value of a given attribute of the LoadResult object.
+
+    Attributes
+    ----------
+        load_type : :class:`harmonize.enums.LoadType`
+            The type of load operation.
+        playlist_info : :class:`harmonize.objects.PlaylistInfo`
+            The playlist information. If the load operation is not a playlist, this will be None.
+        tracks : list[:class:`harmonize.objects.Track`]
+            The decoded Track objects.
+        plugin_info : Optional[dict[str, any]]
+            Additional plugin information associated with the load operation, if applicable.
+        error : Optional[:class:`harmonize.objects.LoadError`]
+            The load error, if applicable.
+    """
+
     __slots__ = ('load_type', 'playlist_info', 'tracks', 'plugin_info', 'error')
 
     def __init__(
@@ -41,34 +68,15 @@ class LoadResult(Serializable):
             tracks: list[Track],
             playlist_info: PlaylistInfo = PlaylistInfo.none(),
             plugin_info: Optional[dict[str, any]] = None,
-            error: Optional[_LoadError] = None
-    ):
-        """
-        Initializes a new instance of the LoadResult class.
-
-        Args:
-            load_type (LoadType): The type of load.
-            tracks (list[Track]): A list of tracks.
-            playlist_info (PlaylistInfo, optional): The playlist information. Defaults to PlaylistInfo.none().
-            plugin_info (Optional[dict[str, any]], optional): The plugin information. Defaults to None.
-            error (Optional[_LoadError], optional): The load error. Defaults to None.
-        """
+            error: Optional[LoadError] = None
+    ) -> None:
         self.load_type: LoadType = load_type
         self.playlist_info: PlaylistInfo = playlist_info
         self.tracks: list[Track] = tracks
         self.plugin_info: Optional[dict[str, any]] = plugin_info
-        self.error: Optional[_LoadError] = error
+        self.error: Optional[LoadError] = error
 
-    def __getitem__(self, k):
-        """
-        Gets the value of a LoadResult attribute by its key.
-
-        Args:
-            k (str): The key of the attribute.
-
-        Returns:
-            any: The value of the attribute.
-        """
+    def __getitem__(self, k: str) -> any:
         if k == 'loadType':
             k = 'load_type'
         elif k == 'playlistInfo':
@@ -81,22 +89,25 @@ class LoadResult(Serializable):
         """
         Creates an empty LoadResult instance.
 
-        Returns:
-            LoadResult: An empty LoadResult instance with a load type of EMPTY and an empty list of tracks.
+        Returns
+        -------
+            LoadResult
         """
         return LoadResult(LoadType.EMPTY, [])
 
     @classmethod
-    def from_dict(cls, mapping: dict):
+    def from_dict(cls, mapping: dict) -> LoadResult:
         """
         Creates a LoadResult instance from a dictionary.
 
-        Args:
-            cls: The class itself.
-            mapping (dict): A dictionary containing the data to create the LoadResult instance.
+        Parameters
+        ----------
+            mapping : dict
+                A dictionary containing the data to create the LoadResult instance.
 
-        Returns:
-            LoadResult: A LoadResult instance created from the dictionary.
+        Returns
+        -------
+            LoadResult
         """
         plugin_info: Optional[dict] = None
         playlist_info: Optional[PlaylistInfo] = PlaylistInfo.none()
@@ -116,7 +127,7 @@ class LoadResult(Serializable):
         elif load_type == LoadType.SEARCH:
             tracks = [Track(track) for track in data]  # type: ignore
         elif load_type == LoadType.ERROR:
-            error = _LoadError(data)  # type: ignore
+            error = LoadError(data)  # type: ignore
             return cls(load_type, [], playlist_info, plugin_info, error)
 
         return cls(load_type, tracks, playlist_info, plugin_info)

@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from asyncio import get_event_loop
 from collections import defaultdict
-from typing import Optional, Union, Type, TypeVar, TYPE_CHECKING
+from typing import Optional, Union, TypeVar, TYPE_CHECKING
 from urllib import parse
 
 from disnake import Client
 
-from harmonize.abstract.filter import Filter
+from harmonize.abstract import Serializable, Filter
 from harmonize.connection.cache import LFUCache
-from harmonize.enums import NodeStatus, CacheCapacity
-from harmonize.exceptions import ClientError, RequestError
-from harmonize.objects import Track, LoadResult, MISSING, Stats
 from harmonize.connection.transport import Transport
+from harmonize.enums import NodeStatus, CacheCapacity
+from harmonize.exceptions import InvalidSession, RequestError
+from harmonize.objects import Track, LoadResult, MISSING, Stats
 
 if TYPE_CHECKING:
     from harmonize.player import Player
@@ -25,15 +25,63 @@ __all__ = (
 
 
 class Node:
+    """Represents a lavalink node
+    
+    Operations
+    ----------
+        .. describe:: x == y
+
+            Checks if two nodes are the same.
+
+        .. describe:: x != y
+
+            Checks if two nodes are not the same.
+
+        .. describe:: hash(x)
+
+            Return the node's hash.
+    
+    Attributes
+    ----------
+        identifier : str
+            A unique identifier for the node.
+
+        host : str
+            The host address of the node.
+
+        port : int
+            The port number of the node.
+
+        ssl : bool
+            A boolean indicating whether the node uses SSL.
+
+        client : :class:`disnake.Client`
+            The client instance associated with the node.
+
+        cache_capacity : :class:`harmonize.enums.CacheCapacity`
+            The capacity of the node's cache. Defaults to CacheCapacity.LITTLE.
+
+        retries : int
+            The number of retries for the node's transport. Defaults to 10.
+
+        heartbeat : float
+            The heartbeat interval for the node's transport. Defaults to 15.0.
+
+        status : :class:`harmonize.enums.NodeStatus`
+            The current status of the node. Defaults to NodeStatus.DISCONNECTED
+
+        stats : :class:`harmonize.objects.Stats`
+            Node statistics object associated with the node
+    """
     __cache: Optional[LFUCache] = None
 
     @classmethod
     def _load_cache(cls, capacity: int) -> None:
         """
-        Loads the cache for the Node class.
+        Initializes the cache with the specified capacity.
 
         Args:
-            capacity: The maximum number of items the cache can hold.
+            capacity (int): The capacity of the cache.
 
         Returns:
             None
@@ -53,26 +101,7 @@ class Node:
             cache_capacity: CacheCapacity = CacheCapacity.LITTLE,
             retries: int = 10,
             heartbeat: float = 15.0,
-            resume_timeout: int = 300,
     ) -> None:
-        """
-        Initializes a Node instance.
-
-        Args:
-            identifier: A unique identifier for the node.
-            host: The host address of the node.
-            port: The port number of the node.
-            ssl: A boolean indicating whether the node uses SSL.
-            password: The password for the node.
-            client: The client instance associated with the node.
-            cache_capacity: The capacity of the node's cache. Defaults to CacheCapacity.LITTLE.
-            retries: The number of retries for the node's transport. Defaults to 10.
-            heartbeat: The heartbeat interval for the node's transport. Defaults to 15.0.
-            resume_timeout: The resume timeout for the node's transport. Defaults to 300.
-
-        Returns:
-            None
-        """
         self.port = port
         self.host = host
 
@@ -81,7 +110,6 @@ class Node:
         self._password = password
         self._heartbeat: float = heartbeat
         self._client: Client = client
-        self._resume_timeout: int = resume_timeout
 
         self.stats = Stats.empty(self)
         self.players: dict[int, Player] = {}
@@ -99,52 +127,22 @@ class Node:
 
     @property
     def identifier(self) -> str:
-        """
-        Gets the unique identifier of the node.
-
-        Returns:
-            str: The unique identifier of the node.
-        """
         return self._identifier
 
     @property
     def client(self) -> Client:
-        """
-        Gets the client instance associated with the node.
-
-        Returns:
-            Client: The client instance associated with the node.
-        """
         return self._client
 
     @property
     def session_id(self) -> str:
-        """
-        Gets the current session ID of the node.
-
-        Returns:
-            str: The current session ID of the node.
-        """
         return self._session_id
 
     @property
     def http_uri(self) -> str:
-        """
-        Gets the HTTP URI of the node.
-
-        Returns:
-            str: The HTTP URI of the node.
-        """
         return self._uri
 
     @property
     def status(self) -> NodeStatus:
-        """
-        Gets the current status of the node.
-
-        Returns:
-            NodeStatus: The current status of the node.
-        """
         return self._status
 
     def __repr__(self) -> str:
@@ -157,23 +155,40 @@ class Node:
         )
 
     def __hash__(self) -> int:
-        return hash(self._identifier)
+        return hash(self._identifier + self.http_uri)
 
     def __eq__(self, other: any) -> bool:
         if not isinstance(other, Node):
             raise ValueError("Nodes can only be compared with other Nodes")
 
-        return other._identifier == self._identifier
+        return all([
+            other._identifier == self._identifier,
+            other.http_uri == self.http_uri
+        ])
+
+    def __ne__(self, other: any) -> bool:
+        return not self.__eq__(other)
 
     def connect(self, force: bool = False) -> None:
         """
-        Connects the node to the transport.
+        Connects the node's transport.
 
-        Args:
-            force: Whether to force the connection.rst even if the transport is alive. Defaults to False.
+        Parameters
+        ----------
+            force : bool
+                Whether to force a reconnection. Defaults to False.
 
-        Returns:
+        Returns
+        -------
             None
+
+        Raises
+        ------
+            AuthorizationError
+                Throws when authorization fails
+
+            NodeUnknownError
+                Thrown at 404 status
         """
         if self._transport.is_alive:
             if not force:
@@ -185,49 +200,93 @@ class Node:
 
     def close(self) -> None:
         """
-        Closes the node's transport connection.rst.
+        Closes the node's transport connection.
 
-        Returns:
+        Returns
+        -------
             None
         """
         self._client.loop.create_task(self._transport.close())
 
     async def destroy_player(self, guild_id: str | int) -> bool:
-        """
+        """|coro|
+
         Destroys a player with the given guild ID.
 
-        Args:
-            guild_id (str | int): The ID of the guild to destroy the player for.
+        Args
+        ----
+            guild_id : str | int
+                The ID of the guild to destroy the player for.
 
-        Returns:
-            bool: Whether the player was successfully destroyed.
+        Returns
+        -------
+            bool
+                Whether the player was successfully destroyed.
 
-        Raises:
-            ClientError: If the session ID is invalid.
+        Raises
+        ------
+            InvalidSession
+                Throws if player can't be destroyed because of invalid session
+
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         if not self.session_id:
-            raise ClientError('Cannot destroy a player without a valid session ID!')
+            raise InvalidSession('Cannot destroy a player without a valid session ID!')
 
         return await self.request('DELETE', f'sessions/{self.session_id}/players/{guild_id}')
 
     async def get_routeplanner_status(self) -> dict[str, any]:
-        """
+        """|coro|
+
         Retrieves the current status of the route planner.
 
-        Returns:
-            dict[str, any]: The status of the route planner.
+        Returns
+        -------
+            dict[str, any]
+                The status of the route planner.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         return await self.request('GET', 'routeplanner/status')
 
     async def routeplanner_free_address(self, address: str) -> bool:
-        """
+        """|coro|
+
         Frees a route planner address.
 
-        Args:
-            address (str): The address to free.
+        Parameters
+        ----------
+            address : str
+                The address to free.
 
-        Returns:
-            bool: Whether the address was successfully freed.
+        Returns
+        -------
+            bool
+                Whether the address was successfully freed.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            IOError
+                If the connection has been closed
         """
         try:
             return await self.request('POST', 'routeplanner/free/address', params={'address': address})  # type: ignore
@@ -235,11 +294,22 @@ class Node:
             return False
 
     async def routeplanner_free_all_failing(self) -> bool:
-        """
+        """|coro|
+
         Frees all failing route planner addresses.
 
-        Returns:
-            bool: Whether all addresses were successfully freed.
+        Returns
+        -------
+            bool
+                Whether all addresses were successfully freed.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            IOError
+                If the connection has been closed
         """
         try:
             return await self.request('POST', 'routeplanner/free/all')  # type: ignore
@@ -247,17 +317,30 @@ class Node:
             return False
 
     async def get_tracks(self, query: str) -> LoadResult:
-        """
-        Asynchronously retrieves tracks based on the provided query.
+        """|coro|
 
-        Args:
-            query (str): The query string to search for tracks.
+        Retrieves tracks based on the provided query.
 
-        Returns:
-            LoadResult: The result of the load tracks request.
+        Parameters
+        ----------
+            query : str
+                The query string to search for tracks.
 
-        Raises:
-            None.
+        Returns
+        -------
+            :class:`harmonize.objects.LoadResult`
+                The result of the load tracks request.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         encoded_query: str = parse.quote(query)
         if potential := self.__cache.get(encoded_query, None):
@@ -270,36 +353,59 @@ class Node:
         return data
 
     async def decode_tracks(self, tracks: list[str]) -> list[Track]:
-        """
-        Asynchronously decodes a list of tracks.
+        """|coro|
 
-        Args:
-            tracks (list[str]): A list of track IDs to decode.
+        Decodes a list of tracks.
 
-        Returns:
-            list[Track]: A list of decoded Track objects.
+        Parameters
+        ----------
+            tracks : list[str]
+                A list of track IDs to decode.
 
-        This function sends a POST request to the 'decodetracks' endpoint of the node's API with a JSON payload containing the list of track IDs. It then maps the response to a list of Track objects using the `Track.from_dict` method.
+        Returns
+        -------
+            list[:class:`harmonize.objects.Track`]
+                A list of decoded Track objects.
 
-        Raises:
-            RequestError: If there is an error making the request.
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
 
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         response = await self.request('POST', 'decodetracks', json={'tracks': tracks})
         return list(map(Track.from_dict, response))
 
     async def decode_track(self, track: str) -> Track:
-        """
-        Asynchronously decodes a single track.
+        """|coro|
 
-        Args:
-            track (str): The track ID to decode.
+        Decodes a single track.
 
-        Returns:
-            Track: The decoded Track object.
+        Parameters
+        ----------
+            track : str
+                The track ID to decode.
 
-        Raises:
-            None.
+        Returns
+        -------
+            :class:`harmonize.objects.Track`
+                The decoded Track object.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         encoded_query: str = parse.quote(track)
         if potential := self.__cache.get(encoded_query, None):
@@ -311,56 +417,110 @@ class Node:
         return data
 
     async def get_info(self) -> dict[str, any]:
-        """
-        Asynchronously retrieves information about the node.
+        """|coro|
+
+        Retrieves information about the node.
 
         Returns:
-            dict[str, any]: A dictionary containing information about the node.
+            dict[str, any]
+                A dictionary containing information about the node.
 
-        Raises:
-            RequestError: If there is an error making the request.
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         return await self.request('GET', 'info')
 
     async def get_stats(self) -> dict[str, any]:
-        """
-        Asynchronously retrieves statistics about the node.
+        """|coro|
 
-        Returns:
-            dict[str, any]: A dictionary containing statistics about the node.
+        Retrieves statistics about the node.
+
+        Returns
+        -------
+            dict[str, any]
+                A dictionary containing statistics about the node.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         return await self.request('GET', 'stats')
 
     async def get_player(self, guild_id: Union[str, int]) -> dict[str, any]:
-        """
-        Asynchronously retrieves a player with the given guild ID.
+        """|coro|
 
-        Args:
-            guild_id (str | int): The ID of the guild to retrieve the player for.
+        Retrieves a player with the given guild ID.
 
-        Returns:
-            dict[str, any]: A dictionary containing information about the player.
+        Parameters
+        ----------
+            guild_id: str | int
+                The ID of the guild to retrieve the player for.
 
-        Raises:
-            ClientError: If the session ID is invalid.
+        Returns
+        -------
+            dict[str, any]
+                A dictionary containing information about the player.
+
+        Raises
+        ------
+            InvalidSession
+                Throws if player can't be retrieved because of invalid session.
+
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         if not self.session_id:
-            raise ClientError('Cannot retrieve a player without a valid session ID!')
+            raise InvalidSession('Cannot retrieve a player without a valid session ID!')
 
         return await self.request('GET', f'sessions/{self.session_id}/players/{guild_id}')  # type: ignore
 
     async def get_players(self) -> list[dict[str, any]]:
-        """
-        Asynchronously retrieves a list of players associated with the session ID.
+        """|coro|
+        
+        Retrieves a list of players associated with the session ID.
 
-        Returns:
-            list[dict[str, any]]: A list of dictionaries containing information about the players.
+        Returns
+        -------
+            list[dict[str, any]]
+                A list of dictionaries containing information about the players.
 
-        Raises:
-            ClientError: If the session ID is invalid.
+        Raises
+        ------
+            InvalidSession
+                Throws if player can't be retrieved because of invalid session.
+
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         if not self.session_id:
-            raise ClientError('Cannot retrieve a list of players without a valid session ID!')
+            raise InvalidSession('Cannot retrieve a list of players without a valid session ID!')
 
         return await self.request('GET', f'sessions/{self.session_id}/players')  # type: ignore
 
@@ -379,37 +539,71 @@ class Node:
             user_data: dict[str, any] = MISSING,
             **kwargs
     ) -> Optional[dict[str, any]]:
-        """
-        Asynchronously updates a player with the given guild ID.
+        """|coro|
+        
+        Updates the state of a player with the given guild ID.
+    
+        Parameters
+        ----------
+        guild_id : Union[str, int]
+            The ID of the guild to update the player for.
+        encoded_track : Optional[str] = MISSING
+            The encoded track to update the player with.
+            If both this and `identifier` are specified, an error will be raised.
+        identifier : str = MISSING
+            The identifier of the track to update the player with.
+            If both this and `encoded_track` are specified, an error will be raised.
+        no_replace : bool = MISSING
+            Whether to replace the current track with the new one. Defaults to False.
+        position : int = MISSING
+            The position of the track to update the player with. If not specified, the current position will be used.
+        end_time : int = MISSING
+            The end time of the track to update the player with. If not specified, the current end time will be used.
+        volume : int = MISSING
+            The volume of the track to update the player with. If not specified, the current volume will be used.
+        paused : bool = MISSING
+            Whether the track is paused. If not specified, the current paused state will be used.
+        filters : Optional[list[Filter]] = MISSING
+            A list of filters to apply to the track. If not specified, no filters will be applied.
+        voice_state : dict[str, any] = MISSING
+            The voice state of the player. If not specified, the current voice state will be used.
+        user_data : dict[str, any] = MISSING
+            Additional user data to associate with the player.
+            If not specified, no additional user data will be associated.
+        **kwargs
+            Additional keyword arguments to pass to the request.
+    
+        Returns
+        -------
+        Optional[dict[str, any]]
+            The updated player information, or None if no update was made.
+    
+        Raises
+        ------
+            InvalidSession
+                Throws if player can't be retrieved because of invalid session.
 
-        Args:
-            guild_id (str | int): The ID of the guild to update the player for.
-            encoded_track (str, optional): The encoded track to play. Defaults to MISSING.
-            identifier (str, optional): The identifier of the track to play. Defaults to MISSING.
-            no_replace (bool, optional): Whether to replace the current track. Defaults to MISSING.
-            position (int, optional): The position of the track to play. Defaults to MISSING.
-            end_time (int, optional): The end time of the track to play. Defaults to MISSING.
-            volume (int, optional): The volume of the track to play. Defaults to MISSING.
-            paused (bool, optional): Whether the track is paused. Defaults to MISSING.
-            filters (list[Filter], optional): The filters to apply to the track. Defaults to MISSING.
-            voice_state (dict[str, any], optional): The voice state of the player. Defaults to MISSING.
-            user_data (dict[str, any], optional): The user data of the player. Defaults to MISSING.
+            ValueError
+                If both `encoded_track` and `identifier` are specified, or if the specified parameters are invalid.
 
-        Returns:
-            dict[str, any]: A dictionary containing information about the updated player.
+            Forbidden
+                If the request is forbidden.
 
-        Raises:
-            ClientError: If the session ID is invalid.
-            ValueError: If the parameters are invalid.
-        """
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
+            """
         session_id = self.session_id
 
         if not session_id:
-            raise ClientError('Cannot update the state of a player without a valid session ID!')
+            raise InvalidSession('Cannot update the state of a player without a valid session ID!')
 
         if encoded_track is not MISSING and identifier is not MISSING:
             raise ValueError(
-                'encoded_track and identifier are mutually exclusive options, you may not specify both together.')
+                'encoded_track and identifier are mutually exclusive options, you may not specify both together.'
+            )
 
         params = {}
         json = kwargs.copy()
@@ -484,8 +678,43 @@ class Node:
             )
 
     async def update_session(
-            self, session_id: int, resuming: bool = None, timeout: int = None
+            self,
+            session_id: int,
+            resuming: bool = None,
+            timeout: int = None
     ) -> Optional[dict[str, any]]:
+        """|coro|
+
+        Updates the state of a session with the given session ID.
+
+        Parameters
+        ----------
+        session_id : int
+            The ID of the session to update.
+        resuming : bool = None
+            Whether the session should resume playback. Defaults to None.
+        timeout : int = None
+            The timeout for the session, in seconds. Defaults to None.
+
+        Returns
+        -------
+        Optional[dict[str, any]]
+            The updated session information, or None if no update was made.
+
+        Raises
+        ------
+            ValueError
+                If the specified parameters are invalid.
+
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
+        """
         json = {}
 
         if resuming is not None:
@@ -503,25 +732,46 @@ class Node:
         return await self.request('PATCH', f'sessions/{session_id}', json=json)  # type: ignore
 
     async def request(
-            self,  # type: ignore
+            self,
             method: str,
             path: str,
             *,
-            to: Optional[Union[Type[T], str]] = None,
+            to: Optional[Serializable] = None,
             trace: bool = False,
             **kwargs
     ) -> Union[T, str, bool, dict[any, any], list[any]]:
-        """
-        Makes a request to the transport.
+        """|coro|
 
-        Args:
-            method: The HTTP method of the request.
-            path: The path of the request.
-            to: The type to deserialize the response to. Defaults to None.
-            trace: Whether to include tracing information in the request. Defaults to False.
+        Sends an HTTP request to the specified path on the node's transport.
 
-        Returns:
-            The response from the transport, deserialized to the specified type if provided.
+        Parameters
+        ----------
+        method : str
+            The HTTP method to use for the request, e.g. 'GET', 'POST', 'PUT', 'DELETE'.
+        path : str
+            The path of the resource to request, relative to the base URL of the node.
+        to : :class:`harmonize.abstract.Serializable` = None
+            The class of the object to deserialize the response into
+        trace : bool = False
+            Whether to enable tracing for the request. Defaults to False.
+        **kwargs : dict
+            Additional keyword arguments to pass to the request.
+
+        Returns
+        -------
+        Union[T, str, bool, dict[any, any], list[any]]
+            The response from the request, deserialized into the specified type or class if provided.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
         """
         return await self._transport.request(
             method=method,

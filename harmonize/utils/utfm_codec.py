@@ -6,6 +6,25 @@ __all__ = (
 
 
 def read_utfm(utf_len: int, utf_bytes: bytes) -> str:
+    """
+    This function reads a UTF-8 encoded byte stream and decodes it into a string.
+
+    Parameters
+    ----------
+        utf_len : int
+            The length of the UTF-8 encoded byte stream.
+        utf_bytes : bytes
+            The UTF-8 encoded byte stream to be decoded.
+
+    Returns:
+        str
+            The decoded string from the UTF-8 encoded byte stream.
+
+    Raises
+    ------
+        UnicodeDecodeError
+            If the input is malformed or incomplete.
+    """
     chars = []
     count = 0
 

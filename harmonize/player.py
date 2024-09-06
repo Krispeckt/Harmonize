@@ -28,38 +28,63 @@ __all__ = (
 
 
 class Player(VoiceProtocol):
+    """
+    Represents a Discord voice player.
+
+    Attributes
+    ----------
+        node : :class:`harmonize.connection.Node`
+            The node the player is connected to.
+
+        connection_event : :class:`asyncio.Event`
+            An event triggered when the player's connection state changes.
+
+        voice_state : dict[str, any]
+            The current voice state of the player.
+
+        user_data : dict[any, any]
+            The user data of the player.
+
+        volume : int
+            The current volume of the player.
+
+        paused : bool
+            A boolean indicating whether the player is paused or not.
+
+        connected : bool
+            A boolean indicating whether the player is connected or not.
+
+        is_playing : bool
+            A boolean indicating whether the player is currently playing or not.
+
+        guild : Optional[:class:`disnake.Guild`]
+            The guild the player is connected to.
+
+        loop : :class:`harmonize.enums.LoopStatus`
+            The loop status of the player.
+
+        position_timestamp : int
+            The timestamp of the player's current position.
+
+        last_position : int
+            The last known position of the player.
+
+        last_update : int
+            The timestamp of the player's last update.
+
+        queue : :class:`harmonize.queue.Queue`
+            The queue of the player.
+
+        filters : list[:class:`harmonize.abstract.Filter`]
+            The list of filters currently applied to the player.
+    """
     channel: VocalGuildChannel
 
     def __call__(self, client: Client, channel: VocalGuildChannel) -> Player:
-        """
-        Calls the Player instance, initializing it with a client and a channel.
-
-        Args:
-            client (Client): The client instance to initialize the player with.
-            channel (VocalGuildChannel): The channel to initialize the player with.
-
-        Returns:
-            Player: The initialized Player instance.
-        """
         super().__init__(client, channel)
         return self
 
     def __init__(self, *args, **kwargs) -> None:
-        """
-        Initializes a Player instance.
-
-        Initializes a Player instance with the given arguments and keyword arguments.
-        Sets up the internal state of the player, including the node, connection.rst event,
-        voice state, user data, volume, and current track. Also sets up the queue,
-        history, and filters.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            None
-        """
         self._node: Node = Pool.get_best_node()
         self._connection_event: Event = asyncio.Event()
         self._connected: bool = False
@@ -81,82 +106,34 @@ class Player(VoiceProtocol):
 
     @property
     def node(self) -> Node:
-        """
-        Gets the current node instance associated with the player.
-
-        Returns:
-            Node: The current node instance associated with the player.
-        """
         return self._node
 
     @property
     def is_playing(self) -> bool:
-        """
-        Checks if the player is currently playing a track.
-
-        Returns:
-            bool: True if the player is playing a track, False otherwise.
-        """
         return self.queue.current is not None and not self._paused and self._connected
 
     @property
     def connected(self) -> bool:
-        """
-        Gets whether the player is currently connected to a voice channel.
-
-        Returns:
-            bool: Whether the player is currently connected to a voice channel.
-        """
         return self._connected
 
     @property
     def paused(self) -> bool:
-        """
-        Gets whether the player is currently paused.
-
-        Returns:
-            bool: Whether the player is currently paused.
-        """
         return self._paused
 
     @property
     def user_data(self) -> dict[any, any]:
-        """
-        Gets the user data associated with the player.
-
-        Returns:
-            dict[any, any]: A copy of the user data dictionary.
-        """
         return self._user_data.copy()
 
     @property
     def volume(self) -> int:
-        """
-        Gets the current volume of the player.
-
-        Returns:
-            int: The current volume of the player.
-        """
         return self._volume
 
     @property
     def queue(self) -> Queue:
-        """
-        Returns a copy of the queue of tracks.
-
-        Returns:
-            list[Track]: A copy of the list of tracks in the queue.
-        """
         return self._queue
 
     @property
     def filters(self) -> list[Filter]:
-        """
-        Gets the list of filters applied to the player.
-
-        Returns:
-            list[Filter]: A list of filters applied to the player.
-        """
         return list(self._filters.values())
 
     async def on_voice_server_update(self, data: dict) -> None:
@@ -182,13 +159,21 @@ class Player(VoiceProtocol):
             self._connection_event.set()
 
     async def handle_event(self, reason: EndReason) -> None:
-        """
+        """|coro|
+
         Handles an event triggered by the player, such as a track finishing or a load failure.
 
-        Parameters:
-            reason (EndReason): The reason for the event.
+        Note
+        ----
+            This function is required for autoplay please do not touch it for personal use
 
-        Returns:
+        Parameters
+        ----------
+            reason : :class:`harmonize.enums.EndReason`
+                The reason for the event.
+
+        Returns
+        -------
             None
         """
         if (
@@ -204,28 +189,41 @@ class Player(VoiceProtocol):
                 )
 
     async def update_state(self, state: dict) -> None:
-        """
+        """|coro|
+
         Updates the state of the player with the given state dictionary.
 
-        Parameters:
-            state (dict): The state dictionary containing the 'position' and 'time' keys.
+        Note
+        ----
+            This function is required to update the node statistics, please do not touch it for personal use
 
-        Returns:
+        Parameters
+        ----------
+            state : dict
+                The state dictionary containing the 'position' and 'time' keys.
+
+        Returns
+        -------
             None
         """
         self.last_update = int(time() * 1000)
         self.last_position = state.get('position', 0)
         self.position_timestamp = state.get('time', 0)
 
-    def dispatch(self, name: str, *args) -> None:
+    def dispatch(self, name: str, *args: any) -> None:
         """
         Dispatches a message to the client with the given name and arguments.
 
-        Parameters:
-            name (str): The name of the message to dispatch.
-            *args: Variable number of arguments.
+        Parameters
+        ----------
+            name : str
+                The name of the message to dispatch.
 
-        Returns:
+            *args : any
+                Variable number of arguments.
+
+        Returns
+        -------
             None
         """
         self._node.client.dispatch(f"harmonize_{name}", *args)
@@ -234,10 +232,13 @@ class Player(VoiceProtocol):
         """
         Adds the given keyword arguments to the user data dictionary.
 
-        Parameters:
-            **kwargs (any): The keyword arguments to be added to the user data dictionary.
+        Parameters
+        ----------
+            **kwargs : any
+                The keyword arguments to be added to the user data dictionary.
 
-        Returns:
+        Returns
+        -------
             None
         """
         self._user_data.update(kwargs)
@@ -246,11 +247,14 @@ class Player(VoiceProtocol):
         """
         Retrieves the value associated with the specified key from the user data dictionary.
 
-        Parameters:
-            key (any): The key to retrieve the value from the user data dictionary.
+        Parameters
+        ----------
+            key : any
+                The key to retrieve the value from the user data dictionary.
 
-        Returns:
-            any: The value associated with the specified key, or None if the key is not found.
+        Returns
+        -------
+            any
         """
         return self._user_data.get(key)
 
@@ -310,29 +314,56 @@ class Player(VoiceProtocol):
             no_replace: bool = MISSING,
             volume: int = MISSING,
             pause: bool = MISSING,
-            **kwargs
+            **kwargs: any
     ) -> None:
-        """
+        """|coro|
+
         Plays a track with the given parameters.
+
+        Note
+        ----
+            Start_time must be an int with a value equal to, or greater than 0, and less than the track duration
+
+            End_time must be an int with a value equal to,
+            or greater than 1, and less than or equal to the track duration
 
         Parameters
         ----------
-        track : Optional[Track]
-            The track to play. If MISSING, the next track in the queue will be played.
-        start_time : int
-            The start time of the track. If MISSING, the track will start from the beginning.
-        end_time : int
-            The end time of the track. If MISSING, the track will play until its end.
-        no_replace : bool
-            Whether to replace the current track or not. If True, the current track will not be replaced.
-        volume : int
-            The volume of the track. If MISSING, the current volume will be used.
-        pause : bool
-            Whether to pause the track after playing. If MISSING, the track will not be paused.
+            track : Optional[Track]
+                The track to play. If MISSING, the next track in the queue will be played.
+            start_time : int
+                The start time of the track. If MISSING, the track will start from the beginning.
+            end_time : int
+                The end time of the track. If MISSING, the track will play until its end.
+            no_replace : bool
+                Whether to replace the current track or not. If True, the current track will not be replaced.
+            volume : int
+                The volume of the track. If MISSING, the current volume will be used.
+            pause : bool
+                Whether to pause the track after playing. If MISSING, the track will not be paused.
+            **kwargs : any
+                Additional options to be passed to the player.
+
+        Raises
+        ------
+            ValueError
+                If the start_time or end_time is invalid.
+
+            TypeError
+                If the pause parameter is not a bool.
+
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         if no_replace is True and self.queue.current:
             return
@@ -373,84 +404,155 @@ class Player(VoiceProtocol):
             self._paused = response['paused']
 
     async def stop(self) -> None:
-        """
+        """|coro|
+
         Stops the current player.
 
-        This function updates the player state by setting the encoded track to None and
-        resets the current track.
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         await self._node.update_player(guild_id=self.guild.id, encoded_track=None)
         self.queue._current = None
 
     async def skip(self) -> Optional[Track]:
-        """
+        """|coro|
+
         Skips the current track in the player's queue.
 
-        This function does not take any parameters. It returns the track that was skipped.
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
+
+        Returns
+        -------
+            Optional[:class:`harmonize.objects.Track`]
         """
         old = self.queue.current
         await self.play()
         return old
 
     async def set_pause(self, paused: bool) -> None:
-        """
+        """|coro|
+
         Sets the pause state of the player.
 
         Parameters
         ----------
-        paused : bool
-            Whether the player should be paused or not.
+            paused : bool
+                Whether the player should be paused or not.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         await self._node.update_player(guild_id=self.guild.id, paused=paused)
         self._paused = paused
 
     async def change_volume(self, volume: int) -> None:
-        """
+        """|coro|
+
         Changes the volume of the player.
 
         Parameters
         ----------
-        volume : int
-            The new volume of the player. It will be clamped between 0 and 1000.
+            volume : int
+                The new volume of the player. It will be clamped between 0 and 1000.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         volume = max(min(volume, 1000), 0)
         await self._node.update_player(guild_id=self.guild.id, volume=volume)
         self._volume = volume
 
     async def seek(self, position: int) -> None:
-        """
+        """|coro|
+
         Seeks to a specific position in the player.
 
         Parameters
         ----------
-        position : int
-            The position to seek to.
+            position : int
+                The position to seek to.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         await self._node.update_player(guild_id=self.guild.id, position=position)
 
     async def remove_filters(self) -> None:
-        """
+        """|coro|
+
         Removes all audio filters from the player.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         self._filters.clear()
         await self._node.update_player(
@@ -466,20 +568,34 @@ class Player(VoiceProtocol):
     async def update_filters(self, filters: list[Filter]) -> None:
         ...
 
-    async def update_filters(self, **kwargs) -> None:
-        """
+    async def update_filters(self, **kwargs: any) -> None:
+        """|coro|
+
         Updates the player's audio filters.
 
         Parameters
         ----------
-        **kwargs
-            Keyword arguments containing the filters to update.
-            - filters (list[Filter]): The list of filters to update.
-            - filter (Filter): The filter to update.
+            **kwargs : any
+                Keyword arguments containing the filters to update.
+
+                - filters (list[Filter]): The list of filters to update.
+
+                - filter (Filter): The filter to update.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         filters = self._get_filters_from_kwargs(kwargs)
         serialized_filters: dict[str, Filter] = self._filters.copy()
@@ -502,20 +618,34 @@ class Player(VoiceProtocol):
     async def set_filters(self, filters: list[Filter]) -> None:
         ...
 
-    async def set_filters(self, **kwargs) -> None:
-        """
+    async def set_filters(self, **kwargs: any) -> None:
+        """|coro|
+
         Sets the player's audio filters.
 
         Parameters
         ----------
-        **kwargs
-            Keyword arguments containing the filters to set.
-            - filters (list[Filter]): The list of filters to set.
-            - filter (Filter): The filter to set.
+            **kwargs : any
+                Keyword arguments containing the filters to set.
+
+                - filters (list[Filter]): The list of filters to set.
+
+                - filter (Filter): The filter to set.
+
+        Raises
+        ------
+            Forbidden
+                If the request is forbidden.
+
+            RequestError
+                Throws an error when the request fails.
+
+            IOError
+                If the connection has been closed
 
         Returns
         -------
-        None
+            None
         """
         filters = self._get_filters_from_kwargs(kwargs)
 
@@ -531,7 +661,7 @@ class Player(VoiceProtocol):
         )
 
     @classmethod
-    def _get_filters_from_kwargs(cls, kwargs: dict[any, any], /) -> list[Filter]:
+    def _get_filters_from_kwargs(cls, kwargs: dict[str, any], /) -> list[Filter]:
         filters = []
         if 'filters' in kwargs:
             filters = kwargs.pop('filters')
@@ -552,19 +682,27 @@ class Player(VoiceProtocol):
             raise ValueError('Filter must be an instance of Filter')
 
     @classmethod
-    async def connect_to_channel(cls, channel: VocalGuildChannel, /, **kwargs) -> Player:
-        """
+    async def connect_to_channel(cls, channel: VocalGuildChannel, /, **kwargs: any) -> Player:
+        """|coro|
+
         Connects a player to a specified channel.
 
-        Parameters:
-            channel (VocalGuildChannel): The channel to connect the player to.
-            **kwargs: Additional keyword arguments to be passed to the player.
+        Parameters
+        ----------
+            channel : VocalGuildChannel
+                The channel to connect the player to.
 
-        Returns:
-            Player: The connected player.
+            **kwargs : any
+                Additional keyword arguments to be passed to the player user data.
 
-        Raises:
-            None
+        Returns
+        -------
+            :class:`harmonize.Player`
+
+        Raises
+        ------
+            InvalidChannelStateException
+                If the provided channel is not a valid voice channel.
         """
         player = await channel.connect(cls=cls)  # type: ignore
         player.add_user_data(**kwargs)
@@ -578,16 +716,28 @@ class Player(VoiceProtocol):
             self_deaf: bool = True,
             self_mute: bool = False
     ) -> None:
-        """
+        """|coro|
+
         Connects the player to a voice channel.
 
-        Parameters:
-            timeout (float): The timeout in seconds before the connection.rst attempt is cancelled. Defaults to 10.0.
-            reconnect (bool): Whether the player should reconnect if the connection.rst is lost.
-            self_deaf (bool): Whether the player should be deafened in the voice channel. Defaults to True.
-            self_mute (bool): Whether the player should be muted in the voice channel. Defaults to False.
+        Parameters
+        ----------
+            timeout : float
+                The timeout in seconds before the connection.rst attempt is cancelled. Defaults to 10.0.
+            reconnect : bool
+                Whether the player should reconnect if the connection.rst is lost.
+            self_deaf : bool
+                Whether the player should be deafened in the voice channel. Defaults to True.
+            self_mute : bool
+                Whether the player should be muted in the voice channel. Defaults to False.
 
-        Returns:
+        Raises
+        ------
+            InvalidChannelStateException
+                If the provided channel is not a valid voice channel.
+
+        Returns
+        -------
             None
         """
         if self.channel is MISSING:
@@ -627,16 +777,17 @@ class Player(VoiceProtocol):
         await self._node.destroy_player(self.guild.id)
 
     async def disconnect(self, **kwargs: any) -> None:
-        """
+        """|coro|
+
         Disconnects the player from the voice channel.
 
-        This method asynchronously calls the `_destroy` method to disconnect the player from the voice channel.
-        After the disconnection is complete, it dispatches a "player_disconnected" event with the player as the payload.
+        Parameters
+        ----------
+            **kwargs : any
+                Additional keyword arguments.
 
-        Parameters:
-            **kwargs (Any): Additional keyword arguments.
-
-        Returns:
+        Returns
+        -------
             None
         """
         await self._destroy()
@@ -650,23 +801,37 @@ class Player(VoiceProtocol):
             self_deaf: Optional[bool] = True,
             self_mute: Optional[bool] = None,
     ) -> None:
-        """
-        Asynchronously moves the player to a specified voice channel.
+        """|coro|
+
+        Moves the player to a specified voice channel.
 
         Args:
-            channel (VocalGuildChannel | None): The voice channel to move the player to. If `None`, the player will remain in its current channel.
-            timeout (float, optional): The maximum time in seconds to wait for the player to connect to the channel. Defaults to 10.0.
-            self_deaf (Optional[bool], optional): Whether the player should be deafened in the voice channel. If `None`, the player's deafened status will be inherited from the current voice state. Defaults to `True`.
-            self_mute (Optional[bool], optional): Whether the player should be muted in the voice channel. If `None`, the player's muted status will be inherited from the current voice state. Defaults to `None`.
+            channel : VocalGuildChannel | None
+                The voice channel to move the player to. If `None`, the player will remain in its current channel.
+            timeout : Optional[float]
+                The maximum time in seconds to wait for the player to connect to the channel. Defaults to 10.0.
+            self_deaf : Optional[bool]
+                Whether the player should be deafened in the voice channel.
+                If `None`, the player's deafened status will be inherited from the current voice state.
+                Defaults to `True`.
+            self_mute : Optional[bool]
+                Whether the player should be muted in the voice channel.
+                If `None`, the player's muted status will be inherited from the current voice state.
+                 Defaults to `None`.
 
-        Returns:
+        Returns
+        -------
             None
 
-        Raises:
+        Raises
+        ------
             InvalidChannelStateException: If the player tries to move without a valid guild or channel.
 
-        Notes:
-            This method will clear the `_connection_event` event and wait for the player to connect to the specified channel. If the connection.rst attempt times out or is cancelled, the player will be destroyed.
+        Note
+        -----
+            This method will clear the `_connection_event` event
+            and wait for the player to connect to the specified channel.
+            If the connection attempt times out or is cancelled, the player will be destroyed.
 
         """
         if not self.guild:

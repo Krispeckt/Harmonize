@@ -16,77 +16,113 @@ __all__ = (
 
 
 class Queue:
+    """
+    Represents a queue of tracks for a Discord voice player.
+
+    Operations
+    ----------
+        .. describe:: len(x)
+
+            Returns the number of tracks in the queue.
+
+        .. describe:: x == y
+
+            Checks if two queues are the same.
+
+        .. describe:: x != y
+
+            Checks if two filters are not the same.
+
+        .. describe:: for y in x
+
+            Returns an iterator over the tracks in the queue.
+
+        .. describe:: x[key]
+
+            Returns the track at the specified index.
+
+        .. describe:: x in y
+
+            Checks if a track is in the queue.
+
+        .. describe:: bool(x)
+
+            Checks if the queue is empty.
+
+        .. describe:: hash(x)
+
+            Return the filter's hash.
+
+        .. describe:: str(x)
+
+            Returns a string representation of the queue.
+
+    Tip
+    ---
+        The ``history`` and ``tracks`` attributes give the ORIGINAL OBJECT, you can change them at will
+
+    Attributes
+    ----------
+        current : Optional[:class:`harmonize.objects.Track`]
+            The currently playing track in the queue.
+
+        tracks : list[:class:`harmonize.objects.Track`]
+            The list of tracks currently in the queue.
+
+        history : list[:class:`harmonize.objects.Track`]
+            The list of tracks that have been played in the queue.
+
+        loop : :class:`harmonize.enums.LoopStatus`
+            The loop status of the queue.
+
+        listened_count : int
+            The number of times a track has been played in the queue.
+    """
+
     def __init__(self, player: Player) -> None:
-        """
-        Initializes a new instance of the Queue class.
-
-        Args:
-            player (Player): The player instance associated with this queue.
-
-        Returns:
-            None
-        """
         self._loop: LoopStatus = LoopStatus(0)
         self._history: list[Track] = []
+        self._listened_count = 0
         self._now: list[Track] = []
         self._current: Optional[Track] = None
         self._player: Player = player
 
     @property
     def current(self) -> Optional[Track]:
-        """
-        Gets the currently playing track in the queue.
-
-        Returns:
-            Optional[Track]: The currently playing track, or None if no track is playing.
-        """
         return self._current
 
     @property
     def history(self) -> list[Track]:
-        """
-        Gets the list of tracks that have been played in the queue.
-
-        Returns:
-            list[Track]: A list of Track objects representing the history of tracks played in the queue.
-        """
         return self._history
 
     @property
     def tracks(self) -> list[Track]:
-        """
-        Returns the list of tracks in the queue.
-
-        Returns:
-            list[Track]: A list of Track objects representing the tracks in the queue.
-        """
         return self._now
 
     @property
     def listened_count(self) -> int:
-        return len(self._history)
+        return self._listened_count
 
     @property
     def loop(self) -> LoopStatus:
-        """
-        Gets the loop status of the queue.
-
-        Returns:
-            LoopStatus: The loop status of the queue.
-        """
         return self._loop
 
     def set_loop(self, value: LoopStatus, /) -> None:
         """
         Sets the loop status of the queue.
 
-        Args:
-            value (LoopStatus): The new loop status to set.
+        Parameters
+        ----------
+            value : :class:`harmonize.enums.LoopStatus`
+                The new loop status to set.
 
-        Raises:
-            ValueError: If the provided value is not an instance of LoopStatus.
+        Raises
+        ------
+            ValueError
+                If the provided value is not an instance of LoopStatus.
 
-        Returns:
+        Returns
+        -------
             None
         """
         if not isinstance(value, LoopStatus):
@@ -101,19 +137,24 @@ class Queue:
     def add(self, tracks: list[Track]) -> None:
         ...
 
-    def add(self, **kwargs) -> None:
+    def add(self, **kwargs: Track | list[Track]) -> None:
         """
         Adds a track or multiple tracks to the queue.
 
-        Args:
-            **kwargs: Keyword arguments containing either 'track' or 'tracks'.
-                'track' (Track): A single track to add to the queue.
-                'tracks' (list[Track]): A list of tracks to add to the queue.
+        Parameters
+        ----------
+            **kwargs : :class:`harmonize.objects.Track` | list[:class:`harmonize.objects.Track`]
 
-        Raises:
+                'track' (:class:`harmonize.objects.Track`): A single track to add to the queue.
+
+                'tracks' (list[:class:`harmonize.objects.Track`]): A list of tracks to add to the queue.
+
+        Raises
+        ------
             ValueError: If neither 'track' nor 'tracks' is provided in kwargs.
 
-        Returns:
+        Returns
+        -------
             None
         """
         if 'track' in kwargs:
@@ -127,7 +168,8 @@ class Queue:
         """
         Clears the queue by removing all tracks from the current and history lists.
 
-        Returns:
+        Returns
+        -------
             None
         """
         self._now.clear()
@@ -137,10 +179,8 @@ class Queue:
         """
         Shuffles the current queue in-place.
 
-        Args:
-            None
-
-        Returns:
+        Returns
+        -------
             None
         """
         shuffle(self._now)
@@ -149,12 +189,15 @@ class Queue:
         """
         Reverses the current queue in-place.
 
-        Returns:
+        Returns
+        -------
             None
         """
         self._now.reverse()
 
     async def _go_to_next(self, track: Optional[Track] = MISSING) -> Optional[Track]:
+        self._listened_count += 1
+
         old = self._current
         if self.loop.value > 0 and self._current:
             match self.loop:

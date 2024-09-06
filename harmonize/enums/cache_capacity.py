@@ -6,6 +6,9 @@ __all__ = (
 
 
 class CacheCapacity(Enum):
+    """
+    Represents the cache capacity parameters for Lavalink node requests.
+    """
     LITTLE = 16
     SMALL = 64
     MEDIUM = 256

@@ -1,60 +1,60 @@
+from __future__ import annotations
+
 __all__ = (
     "PlaylistInfo"
 )
 
 
 class PlaylistInfo:
+    """
+    Represents the information about a playlist.
+
+    Operations
+    ----------
+        .. describe:: x[key]
+
+            Returns the value of a given attribute of the LoadResult object.
+
+    Attributes
+    ----------
+        name : str
+            The name of the playlist.
+        selected_track : int
+            The index of the selected track in the playlist. If no track is selected, it defaults to -1.
+
+    """
     def __init__(self, name: str, selected_track: int = -1):
-        """
-        Initializes a PlaylistInfo object.
-
-        Args:
-            name (str): The name of the playlist.
-            selected_track (int): The index of the selected track in the playlist. Defaults to -1.
-
-        Returns:
-            None
-        """
         self.name: str = name
         self.selected_track: int = selected_track
 
     def __getitem__(self, k: any) -> any:
-        """
-        Returns the value of a given attribute of the PlaylistInfo object.
-
-        Args:
-            k (any): The name of the attribute to retrieve.
-
-        Returns:
-            any: The value of the attribute.
-        """
         if k == 'selectedTrack':
             k = 'selected_track'
         return self.__getattribute__(k)
 
     @classmethod
-    def from_dict(cls, mapping: dict[str, any]):
+    def from_dict(cls, mapping: dict[str, any]) -> PlaylistInfo:
         """
         Creates a new instance of the `PlaylistInfo` class from a dictionary.
 
-        Args:
-            mapping (dict[str, any]): The dictionary containing the information to create the `PlaylistInfo` object.
-                It should have the following keys:
-                    - 'name' (str): The name of the playlist.
-                    - 'selectedTrack' (int, optional): The index of the selected track in the playlist. Defaults to -1.
+        Parameters
+        ----------
+            mapping : dict[str, any]
+                A dictionary containing the playlist information.
 
-        Returns:
-            PlaylistInfo: The newly created `PlaylistInfo` object.
+        Returns
+        -------
+            PlaylistInfo
         """
         return cls(mapping['name'], mapping.get('selectedTrack', -1))
 
     @classmethod
-    def none(cls):
+    def none(cls) -> PlaylistInfo:
         """
         Creates a new instance of the `PlaylistInfo` class with default values.
 
         Returns:
-            PlaylistInfo: A new `PlaylistInfo` object with an empty name and a selected track index of -1.
+            PlaylistInfo
         """
         return cls('', -1)
 

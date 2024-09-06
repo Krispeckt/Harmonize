@@ -8,24 +8,16 @@ __all__ = (
 
 
 class ChannelMix(Filter[dict[str, float]]):
+    """
+    Represents a channel mix filter. Extended from :class:`harmonize.abstract.Filter`
+    """
+
     def __init__(
             self, left_to_left: float = 1.0,
             left_to_right: float = 0.0,
             right_to_left: float = 0.0,
             right_to_right: float = 0.0
     ) -> None:
-        """
-        Initializes a new instance of the ChannelMix filter.
-
-        Args:
-            left_to_left (float): The amount of the left channel to send to the left channel. Defaults to 1.0.
-            left_to_right (float): The amount of the left channel to send to the right channel. Defaults to 0.0.
-            right_to_left (float): The amount of the right channel to send to the left channel. Defaults to 0.0.
-            right_to_right (float): The amount of the right channel to send to the right channel. Defaults to 0.0.
-
-        Returns:
-            None
-        """
         super().__init__({
             'leftToLeft': left_to_left,
             'leftToRight': left_to_right,
@@ -51,17 +43,26 @@ class ChannelMix(Filter[dict[str, float]]):
 
     def update(self, **kwargs) -> None:
         """
-        Updates the channel mix values.
+        Updates the channel mix values of the filter.
 
-        Args:
-            **kwargs: Keyword arguments containing the channel mix values to update.
-                - left_to_left (float): The amount of the left channel to send to the left channel. Must be between 0 and 1.
-                - left_to_right (float): The amount of the left channel to send to the right channel. Must be between 0 and 1.
-                - right_to_left (float): The amount of the right channel to send to the left channel. Must be between 0 and 1.
-                - right_to_right (float): The amount of the right channel to send to the right channel. Must be between 0 and 1.
+        Note
+        ----
+            All parameters must be bigger than or equal to 0, and less than or equal to 1.
 
-        Returns:
+        Parameters
+        ----------
+            **kwargs
+                A dictionary containing the new channel mix values to update.
+
+        Returns
+        -------
             None
+                This function does not return any value. It updates the internal state of the filter.
+
+        Raises
+        ------
+            ValueError
+                If any of the new channel mix values are not within the range [0, 1].
         """
         if 'left_to_left' in kwargs:
             left_to_left = float(kwargs.pop('left_to_left'))

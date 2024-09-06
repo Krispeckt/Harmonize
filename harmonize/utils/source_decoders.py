@@ -6,14 +6,66 @@ from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .reader import DataReader
+    
+__all__ = (
+    "decode_probe_info",
+    "decode_lavasrc_fields",
+    "DEFAULT_DECODER_MAPPING"
+)
 
 
 def decode_probe_info(reader: DataReader) -> dict[str, any]:
+    """
+    Decodes the probe information from the provided DataReader.
+
+    Parameters
+    ----------
+        reader : :class:`harmonize.utils.DataReader`
+            The DataReader object containing the probe information.
+
+    Returns
+    -------
+        dict[str, any]
+
+    Note
+    ----
+        The dictionary contains the following key and its corresponding value:
+
+        - 'probe_info': The probe information as a string.
+    """
     probe_info = reader.read_utf().decode()
     return {'probe_info': probe_info}
 
 
 def decode_lavasrc_fields(reader: DataReader) -> dict[str, any]:
+    """
+    Decodes the Lava Source fields from the provided DataReader.
+
+    Parameters
+    ----------
+        reader : :class:`harmonize.utils.DataReader`
+            The DataReader object containing the source data.
+
+    Returns
+    -------
+        dict[str, any]
+
+    Note
+    ----
+        The dictionary contains the following keys and their corresponding values:
+
+        - 'album_name': The name of the album.
+
+        - 'album_url': The URL of the album.
+
+        - 'artist_url': The URL of the artist.
+
+        - 'artist_artwork_url': The URL of the artist's artwork.
+
+        - 'preview_url': The URL of the preview.
+
+        - 'is_preview': A boolean indicating whether the source is a preview.
+    """
     if reader.remaining <= 8:
         return {}
 

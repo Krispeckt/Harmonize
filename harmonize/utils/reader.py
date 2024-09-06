@@ -14,6 +14,10 @@ __all__ = (
 
 
 class DataReader:
+    """
+    A utility class for reading binary data from a base 64 track.
+    `Original <https://github.com/devoxin/Lavalink.py/blob/development/lavalink/dataio.py>`_
+    """
     def __init__(self, base64_str: str):
         self._buf = BytesIO(b64decode(base64_str))
 
@@ -31,7 +35,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`bytes`
+            :class:`bytes`
         """
         return self._read(1)
 
@@ -41,7 +45,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`bool`
+            :class:`bool`
         """
         result, = struct.unpack('B', self.read_byte())
         return result != 0
@@ -52,7 +56,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`int`
+            :class:`int`
         """
         result, = struct.unpack('>H', self._read(2))
         return result
@@ -63,7 +67,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`int`
+            :class:`int`
         """
         result, = struct.unpack('>i', self._read(4))
         return result
@@ -74,7 +78,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`int`
+            :class:`int`
         """
         result, = struct.unpack('>Q', self._read(8))
         return result
@@ -89,12 +93,12 @@ class DataReader:
 
         Parameters
         ----------
-        utfm: :class:`bool`
-            Whether to read the string as `modified UTF`_.
+            utfm: :class:`bool`
+                Whether to read the string as `modified UTF`_.
 
         Returns
         -------
-        Optional[:class:`str`]
+            Optional[:class:`str`]
         """
         exists = self.read_boolean()
 
@@ -109,7 +113,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`bytes`
+            :class:`bytes`
         """
         text_length = self.read_unsigned_short()
         return self._read(text_length)
@@ -126,7 +130,7 @@ class DataReader:
 
         Returns
         -------
-        :class:`str`
+            :class:`str`
         """
         text_length = self.read_unsigned_short()
         utf_string = self._read(text_length)

@@ -6,26 +6,24 @@ __all__ = (
 
 
 class LowPass(Filter[float]):
+    """
+    Represents a low pass filter. Extended from :class:`harmonize.abstract.Filter`
+    """
+
     def __init__(self, smoothing: float = 20.0) -> None:
-        """
-        Initializes a new instance of the LowPass class.
-
-        Args:
-            smoothing (float): The smoothing value. Defaults to 20.0.
-
-        Returns:
-            None
-        """
         super().__init__(smoothing)
 
     def update(self, *, smoothing: float) -> None:
         """
         Updates the LowPass filter with a new smoothing value.
 
-        Args:
-            smoothing (float): The new smoothing value. Must be bigger than 1.
+        Parameters
+        ----------
+            smoothing : float
+                The new smoothing value. Must be bigger than 1.
 
-        Returns:
+        Returns
+        -------
             None
         """
         smoothing = float(smoothing)
@@ -38,8 +36,8 @@ class LowPass(Filter[float]):
         """
         Converts the LowPass filter to a dictionary.
 
-        Returns:
+        Returns
+        -------
             dict[str, dict[str, float]]: A dictionary containing the LowPass filter's smoothing value.
         """
         return {'lowPass': {'smoothing': self.values}}
-

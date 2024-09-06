@@ -8,6 +8,10 @@ __all__ = (
 
 
 class Karaoke(Filter[dict[str, float]]):
+    """
+    Represents a karaoke filter. Extended from :class:`harmonize.abstract.Filter`
+    """
+
     def __init__(
             self,
             level: float = 1.0,
@@ -15,18 +19,6 @@ class Karaoke(Filter[dict[str, float]]):
             filter_band: float = 220.0,
             filter_width: float = 100.0
     ) -> None:
-        """
-        Initializes a Karaoke filter object.
-
-        Args:
-            level (float): The level of the filter. Defaults to 1.0.
-            mono_level (float): The level of the mono filter. Defaults to 1.0.
-            filter_band (float): The band of the filter. Defaults to 220.0.
-            filter_width (float): The width of the filter. Defaults to 100.0.
-
-        Returns:
-            None
-        """
         super().__init__({
             'level': level,
             'monoLevel': mono_level,
@@ -130,15 +122,12 @@ class Karaoke(Filter[dict[str, float]]):
         """
         Update the values of the Karaoke filter object.
 
-        Args:
+        Parameters
+        ----------
             **kwargs (dict): A dictionary containing the updated values for the filter.
-                Possible keys are:
-                    - 'level' (float): The level of the filter.
-                    - 'mono_level' (float): The level of the mono filter.
-                    - 'filter_band' (float): The band of the filter.
-                    - 'filter_width' (float): The width of the filter.
 
-        Returns:
+        Returns
+        -------
             None
         """
         if 'level' in kwargs:
@@ -157,7 +146,8 @@ class Karaoke(Filter[dict[str, float]]):
         """
         Converts the Karaoke filter object to a dictionary.
 
-        Returns:
+        Returns
+        -------
             dict[str, dict[str, float]]: A dictionary containing the Karaoke filter values.
         """
         return {'karaoke': self.values}

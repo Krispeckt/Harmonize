@@ -10,14 +10,13 @@ from aiohttp import (
     ClientOSError,
     WSMsgType,
     WSCloseCode,
-    ClientSession,
-    ClientError
+    ClientSession
 )
 from loguru import logger
 
 from harmonize.abstract.serializable import Serializable
 from harmonize.enums import NodeStatus, EndReason, Severity
-from harmonize.exceptions import AuthorizationError, NodeUnknownError, AuthenticationError
+from harmonize.exceptions import AuthorizationError, NodeUnknownError, Forbidden, RequestError
 from harmonize.objects import Stats
 
 if TYPE_CHECKING:
@@ -121,6 +120,9 @@ class Transport:
     async def connect(self) -> None:
         self._node._status = NodeStatus.CONNECTING
         try:
+            if self._session.closed:
+                self._session = ClientSession()
+
             await self._connect_back()
         except Exception as e:
             logger.warning(f"Connection timeout to Lavalink V4: {e}")
@@ -247,7 +249,6 @@ class Transport:
         await self._session.close()
         self._node._status = NodeStatus.DISCONNECTED
         self._node._session_id = None
-        self._node._transport = None
         self._node.players.clear()
 
         logger.info(f"Successfully cleaned up the websocket for node ({self._node.identifier})")
@@ -277,7 +278,7 @@ class Transport:
                     **kwargs
             ) as response:
                 if response.status in (401, 403):
-                    raise AuthenticationError
+                    raise Forbidden
 
                 if response.status == 200:
                     if to is str:
@@ -289,4 +290,4 @@ class Transport:
                 if response.status == 204:
                     return True
         except Exception as original:
-            raise ClientError from original
+            raise RequestError from original
