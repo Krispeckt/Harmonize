@@ -116,11 +116,29 @@ class Track(Serializable):
             raise InvalidData(f'Cannot build a track from partial data! (Missing key: {error.args[0]})') from error
 
     @classmethod
-    def decode_track(
+    def from_encode(
             cls: type(Track),
             track: str,
             source_decoders: dict[str, Callable[[DataReader], dict[str, any]]] = None
     ) -> Track:
+        """
+        Decodes a track from a given string representation.
+
+        Parameters:
+        -----------
+            track : str
+                The string representation of the track to be decoded.
+            source_decoders : dict[str, Callable[[:class:`harmonize.utils.DataReader`], dict[str, any]]]
+                A dictionary mapping source names to their respective decoding functions.
+                These functions take a DataReader object as input and return a dictionary
+                containing the decoded source-specific fields.
+                If not provided, the function will use the default decoders from DEFAULT_DECODER_MAPPING.
+
+        Returns:
+        --------
+            :class:`harmonize.objects.Track`
+                An instance of the Track class representing the decoded track.
+        """
         decoders = DEFAULT_DECODER_MAPPING.copy()
 
         if source_decoders is not None:
