@@ -34,7 +34,7 @@ def decode_probe_info(reader: DataReader) -> dict[str, any]:
         - 'probe_info': The probe information as a string.
     """
     probe_info = reader.read_utf().decode()
-    return {'probe_info': probe_info}
+    return {'probeInfo': probe_info}
 
 
 def decode_lavasrc_fields(reader: DataReader) -> dict[str, any]:
@@ -54,17 +54,17 @@ def decode_lavasrc_fields(reader: DataReader) -> dict[str, any]:
     ----
         The dictionary contains the following keys and their corresponding values:
 
-        - 'album_name': The name of the album.
+        - 'albumName': The name of the album.
 
-        - 'album_url': The URL of the album.
+        - 'albumUrl': The URL of the album.
 
-        - 'artist_url': The URL of the artist.
+        - 'artistUrl': The URL of the artist.
 
-        - 'artist_artwork_url': The URL of the artist's artwork.
+        - 'artistArtworkUrl': The URL of the artist's artwork.
 
-        - 'preview_url': The URL of the preview.
+        - 'previewUrl': The URL of the preview.
 
-        - 'is_preview': A boolean indicating whether the source is a preview.
+        - 'isPreview': A boolean indicating whether the source is a preview.
     """
     if reader.remaining <= 8:
         return {}
@@ -77,12 +77,12 @@ def decode_lavasrc_fields(reader: DataReader) -> dict[str, any]:
     is_preview = reader.read_boolean()
 
     return {
-        'album_name': album_name,
-        'album_url': album_url,
-        'artist_url': artist_url,
-        'artist_artwork_url': artist_artwork_url,
-        'preview_url': preview_url,
-        'is_preview': is_preview
+        'albumName': album_name,
+        'albumUrl': album_url,
+        'artistUrl': artist_url,
+        'artistArtworkUrl': artist_artwork_url,
+        'previewUrl': preview_url,
+        'isPreview': is_preview
     }
 
 
