@@ -8,17 +8,11 @@ __all__ = (
 
 
 class Vibrato(Filter[dict[str, float]]):
+    """
+    Represents a vibrato filter. Extended from :class:`harmonize.abstract.Filter`
+    """
+
     def __init__(self, frequency: float = 2.0, depth: float = 0.5) -> None:
-        """
-        Initializes a new instance of the Vibrato class.
-
-        Args:
-            frequency (float): The frequency of the vibrato effect. Defaults to 2.0.
-            depth (float): The depth of the vibrato effect. Defaults to 0.5.
-
-        Returns:
-            None
-        """
         super().__init__({'frequency': frequency, 'depth': depth})
 
     @overload
@@ -37,12 +31,22 @@ class Vibrato(Filter[dict[str, float]]):
         """
         Updates the vibrato effect values.
 
-        Args:
-            **kwargs: Keyword arguments containing the vibrato effect values to update.
-                - frequency (float): The frequency of the vibrato effect. Must be bigger than 0, and less than or equal to 14.
-                - depth (float): The depth of the vibrato effect. Must be bigger than 0, and less than or equal to 1.
+        Note
+        ----
+            Frequency must be bigger than 0, and less than or equal to 14.
+            Depth must be bigger than 0, and less than or equal to 1.
 
-        Returns:
+        Parameters
+        ----------
+            **kwargs: Keyword arguments containing the vibrato effect values to update.
+
+        Raises
+        ------
+            ValueError
+                If either frequency or depth are not valid.
+
+        Returns
+        -------
             None
         """
         if 'frequency' in kwargs:
@@ -65,8 +69,8 @@ class Vibrato(Filter[dict[str, float]]):
         """
         Converts the vibrato effect values to a dictionary.
 
-        Returns:
+        Returns
+        -------
             dict[str, dict[str, float]]: A dictionary containing the vibrato effect values.
         """
         return {'vibrato': self.values}
-

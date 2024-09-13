@@ -6,10 +6,11 @@ Harmonize
 
     harmonize
     events
-    abc
+    abstract
     connection
     enums
     objects
+    utils
 
 \
     Harmonize is a wrapper for `Lavalink <https://lavalink.dev>`_.

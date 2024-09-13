@@ -9,48 +9,81 @@ __all__ = (
 
 
 class Filter(ABC, Generic[T]):
+    """Basic class of filters
+
+    Note
+    ----
+        This class can be used if additional filters are used that are not implemented
+
+    Operations
+    ----------
+        .. describe:: x == y
+
+            Checks if two filters are the same.
+
+        .. describe:: x != y
+
+            Checks if two filters are not the same.
+
+        .. describe:: hash(x)
+
+            Return the filter's hash.
+
+    Attributes
+    ----------
+        values : TypeVar (dict[str, any], list[float], list[int], floa)
+            Values Needed Lavalink. See :class:`harmonize.objects.ChannelMix` for example
+        plugin_filter : bool
+            A flag indicating whether the filter is a plugin filter. Default is False.
+
+    """
+
     def __init__(self, values: T, plugin_filter: bool = False) -> None:
-        """
-        Initializes a Filter instance.
-
-        Args:
-            values (T): The values associated with the filter.
-            plugin_filter (bool, optional): Whether the filter is a plugin filter. Defaults to False.
-
-        Returns:
-            None
-        """
         self.values: T = values
         self.plugin_filter: bool = plugin_filter
 
     @abstractmethod
     def update(self, **kwargs) -> None:
         """
-        Updates the filter with the given keyword arguments.
+        Update the filter with new parameters.
 
-        Args:
-            **kwargs: The keyword arguments to update the filter with.
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments representing the new parameters for the filter.
 
-        Returns:
-            None: This function does not return anything.
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented in a subclass.
 
-        Raises:
-            NotImplementedError: This function is meant to be overridden by subclasses and raises an error if not implemented.
+        Returns
+        -------
+        None
+
         """
         raise NotImplementedError
 
     @abstractmethod
     def to_dict(self) -> dict[str, T]:
         """
-        Converts the filter to a dictionary representation.
+        Convert the filter to a dictionary representation.
 
-        Returns:
-            dict[str, T]: A dictionary containing the filter's values.
+        Returns
+        -------
+        dict[str, T]
+            A dictionary representation of the filter.
+
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented in a subclass.
+
         """
         raise NotImplementedError
 
     def __hash__(self) -> int:
-        return hash(self.values)
+        return hash(str(self.values))
 
     def __eq__(self, other: any) -> bool:
         if not isinstance(other, Filter):
@@ -60,3 +93,13 @@ class Filter(ABC, Generic[T]):
             self.values == other.values,
             self.plugin_filter == other.plugin_filter
         ])
+
+    def __ne__(self, other: any) -> bool:
+        return not self.__eq__(other)
+
+    def __repr__(self) -> str:
+        return (
+            f"<harmonize.abstract.Filter "
+            f"values={self.values} "
+            f"plugin_filter={self.plugin_filter}>"
+        )

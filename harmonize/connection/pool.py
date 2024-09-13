@@ -20,10 +20,13 @@ class Pool:
         """
         Loads multiple nodes into the pool.
 
-        Args:
-            nodes (list[Node]): A list of nodes to load.
+        Parameters
+        ----------
+            nodes : list[:class:`harmonize.connection.Node`]
+                A list of nodes to load.
 
-        Returns:
+        Returns
+        -------
             None
         """
         for node in nodes:
@@ -32,12 +35,15 @@ class Pool:
     @classmethod
     def load_node(cls, node: Node) -> None:
         """
-        Loads a node into the pool.
+        Loads a single node into the pool.
 
-        Args:
-            node (Node): The node to load.
+        Parameters
+        ----------
+            node : :class:`harmonize.connection.Node`
+                The node to load into the pool.
 
-        Returns:
+        Returns
+        -------
             None
         """
         node.connect()
@@ -48,8 +54,9 @@ class Pool:
         """
         Retrieves a list of connected nodes from the pool.
 
-        Returns:
-            list[Node]: A list of connected nodes.
+        Returns
+        -------
+            list[:class:`harmonize.connection.Node`]
         """
         return [
             i for i in cls.__nodes.values()
@@ -61,11 +68,14 @@ class Pool:
         """
         Retrieves a node from the pool by its identifier.
 
-        Args:
-            identifier (str): The identifier of the node to retrieve.
+        Parameters
+        ----------
+            identifier : str
+                The identifier of the node to retrieve.
 
-        Returns:
-            Node: The node with the specified identifier.
+        Returns
+        -------
+            :class:`harmonize.connection.Node`
         """
         return cls.__nodes[identifier]
 
@@ -74,8 +84,9 @@ class Pool:
         """
         Get the best node from the pool based on the number of players.
 
-        Returns:
-            Optional[Node]: The node with the least number of players, or None if there are no nodes in the pool.
+        Returns
+        -------
+            Optional[:class:`harmonize.connection.Node`]
         """
         if cls.get_nodes():
             return min(cls.get_nodes(), key=lambda x: len(x.players))
@@ -85,23 +96,9 @@ class Pool:
         """
         Close all the nodes in the pool.
 
-        This method iterates over all the nodes in the pool and calls the `close()` method on each node.
-
-        Returns:
+        Returns
+        -------
             None
         """
         for node in cls.get_nodes():
             node.close()
-
-    @classmethod
-    def close_node(cls, node: Node) -> None:
-        """
-        Closes a node in the pool.
-
-        Args:
-            node (Node): The node to close.
-
-        Returns:
-            None
-        """
-        node.close()

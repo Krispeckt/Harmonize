@@ -1,19 +1,22 @@
 .. currentmodule:: harmonize
 
+Harmonize
+=========
+
 Player
-=======
+~~~~~~
 
 .. autoclass:: Player
     :members:
 
 Queue
-=====
+~~~~~
 
 .. autoclass:: Queue
     :members:
 
 Exceptions
-==========
+~~~~~~~~~~
 
 .. autoclass:: HarmonizeException
     :members:
@@ -24,13 +27,13 @@ Exceptions
 .. autoclass:: NodeUnknownError
     :members:
 
-.. autoclass:: AuthenticationError
+.. autoclass:: Forbidden
     :members:
 
 .. autoclass:: InvalidData
     :members:
 
-.. autoclass:: ClientError
+.. autoclass:: InvalidSession
     :members:
 
 .. autoclass:: RequestError

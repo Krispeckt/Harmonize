@@ -8,23 +8,16 @@ __all__ = (
 
 
 class Timescale(Filter[dict[str, float]]):
+    """
+    Represents a timescale filter. Extended from :class:`harmonize.abstract.Filter`
+    """
+
     def __init__(
             self,
             speed: float = 1.0,
             pitch: float = 1.0,
             rate: float = 1.0
     ) -> None:
-        """
-        Initializes a new instance of the Timescale filter.
-
-        Args:
-            speed: The speed of the filter, defaults to 1.0.
-            pitch: The pitch of the filter, defaults to 1.0.
-            rate: The rate of the filter, defaults to 1.0.
-
-        Returns:
-            None
-        """
         super().__init__({'speed': speed, 'pitch': pitch, 'rate': rate})
 
     @overload
@@ -57,15 +50,23 @@ class Timescale(Filter[dict[str, float]]):
 
     def update(self, **kwargs) -> None:
         """
-        Updates the Timescale filter with the provided keyword arguments.
+        Updates the Timescale filter with new values for speed, pitch, and/or rate.
 
-        Args:
-            **kwargs: Keyword arguments to update the filter.
-                - speed (float): The speed of the filter. Must be bigger than 0.
-                - pitch (float): The pitch of the filter. Must be bigger than 0.
-                - rate (float): The rate of the filter. Must be bigger than 0.
+        Note
+        ----
+            All new values must be greater than or equal to 0.
 
-        Returns:
+        Parameters
+        ----------
+            **kwargs: A dictionary containing the new values for speed, pitch, and/or rate.
+
+        Raises
+        ------
+            ValueError
+                If any of the new values for speed, pitch, and/or rate are not greater than 0.
+
+        Returns
+        -------
             None
         """
         if 'speed' in kwargs:
@@ -96,7 +97,8 @@ class Timescale(Filter[dict[str, float]]):
         """
         Converts the Timescale filter to a dictionary.
 
-        Returns:
+        Returns
+        -------
             dict[str, dict[str, float]]: A dictionary containing the Timescale filter values.
         """
         return {'timescale': self.values}

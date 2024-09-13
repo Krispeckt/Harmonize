@@ -8,6 +8,9 @@ __all__ = (
 
 
 class Distortion(Filter[dict[str, float]]):
+    """
+    Represents a distortion filter. Extended from :class:`harmonize.abstract.Filter`
+    """
     def __init__(
             self,
             sin_offset: float = 0.0,
@@ -19,22 +22,6 @@ class Distortion(Filter[dict[str, float]]):
             offset: float = 0.0,
             scale: float = 1.0
     ) -> None:
-        """
-        Initializes a new instance of the Distortion filter.
-
-        Args:
-            sin_offset (float): The sine offset value. Defaults to 0.0.
-            sin_scale (float): The sine scale value. Defaults to 1.0.
-            cos_offset (float): The cosine offset value. Defaults to 0.0.
-            cos_scale (float): The cosine scale value. Defaults to 1.0.
-            tan_offset (float): The tangent offset value. Defaults to 0.0.
-            tan_scale (float): The tangent scale value. Defaults to 1.0.
-            offset (float): The offset value. Defaults to 0.0.
-            scale (float): The scale value. Defaults to 1.0.
-
-        Returns:
-            None
-        """
         super().__init__({
             'sinOffset': sin_offset,
             'sinScale': sin_scale,
@@ -82,18 +69,12 @@ class Distortion(Filter[dict[str, float]]):
         """
         Updates the distortion filter's values.
 
-        Args:
-            **kwargs: Keyword arguments to update the filter's values.
-                - sin_offset (float): The sine offset value.
-                - sin_scale (float): The sine scale value.
-                - cos_offset (float): The cosine offset value.
-                - cos_scale (float): The cosine scale value.
-                - tan_offset (float): The tangent offset value.
-                - tan_scale (float): The tangent scale value.
-                - offset (float): The offset value.
-                - scale (float): The scale value.
+        Parameters
+        ----------
+            **kwargs: Keyword arguments to update the filter's values. See above
 
-        Returns:
+        Returns
+        -------
             None
         """
         if 'sin_offset' in kwargs:

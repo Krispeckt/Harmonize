@@ -8,17 +8,10 @@ __all__ = (
 
 
 class Equalizer(Filter[list[float]]):
+    """
+    Represents an equalizer filter. Extended from :class:`harmonize.abstract.Filter`
+    """
     def __init__(self, gains: list[float] = None) -> None:
-        """
-        Initializes an Equalizer filter.
-
-        Args:
-            gains: A list of 15 float values representing the gain for each frequency band.
-                   If None, all gains are set to 0.0 by default.
-
-        Returns:
-            None
-        """
         super().__init__([0.0] * 15 if gains is None else gains)
 
     @overload
@@ -33,15 +26,24 @@ class Equalizer(Filter[list[float]]):
         """
         Updates the equalizer filter with new gain values.
 
-        Args:
-            **kwargs: Keyword arguments containing the new gain values.
-                      Can be either 'bands' or 'band' and 'gain'.
+        Note
+        ----
+            Bands must be a list of tuples (band: int, gain: float)
+            Band between 0 and 14, and gain between -0.25 and 1.0
 
-        Raises:
-            ValueError: If the provided gain values are out of range.
-            KeyError: If neither 'bands' nor 'band' and 'gain' are provided.
+        Parameters
+        ----------
+            **kwargs: Keyword arguments containing the new gain values. See above
 
-        Returns:
+        Raises
+        ------
+            ValueError
+                If the provided gain values are out of range.
+            KeyError
+                If neither 'bands' nor 'band' and 'gain' are provided.
+
+        Returns
+        -------
             None
         """
         if 'bands' in kwargs:
@@ -79,7 +81,8 @@ class Equalizer(Filter[list[float]]):
         """
         Converts the Equalizer filter object to a dictionary representation.
 
-        Returns:
+        Returns
+        -------
             dict[str, any]: A dictionary representation of the Equalizer filter object, where each key-value pair represents a band and its corresponding gain.
         """
         return {'equalizer': [{'band': band, 'gain': gain} for band, gain in enumerate(self.values)]}
