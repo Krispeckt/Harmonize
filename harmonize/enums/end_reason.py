@@ -6,6 +6,9 @@ __all__ = (
 
 
 class EndReason(Enum):
+    """
+    Represents the end reasons for a player.
+    """
     FINISHED = 'finished'
     LOAD_FAILED = 'loadFailed'
     STOPPED = 'stopped'

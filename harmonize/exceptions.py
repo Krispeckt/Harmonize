@@ -1,31 +1,53 @@
 class HarmonizeException(Exception):
-    """Base exception class"""
+    """
+    Base class for Harmonize exceptions.
+
+    Tip
+    ---
+        When catching errors, you can use this error class without using all other error classes
+    """
 
 
 class AuthorizationError(HarmonizeException):
-    pass
+    """
+    Represents an authorization error. Throws when authorization fails.
+    """
 
 
 class NodeUnknownError(HarmonizeException):
-    pass
+    """
+    Represents a node unknown error. Throws at 404 status.
+    """
 
 
-class AuthenticationError(HarmonizeException):
+class Forbidden(HarmonizeException):
+    """
+    Represents an authentication error. Throws when authorization fails or forbidden status
+    """
+
     def __init__(self, name: str) -> None:
-        super().__init__("Node " + name + " isn\'t authorized")
+        super().__init__(f"The node {name} is forbidden")
 
 
 class InvalidData(HarmonizeException):
-    pass
+    """
+    Represents an invalid data error. Throws when data is not valid.
+    """
 
 
-class ClientError(HarmonizeException):
-    pass
+class InvalidSession(HarmonizeException):
+    """
+    Represents an invalid session error. Throws when session is not valid.
+    """
 
 
 class RequestError(HarmonizeException):
-    pass
+    """
+    Represents a request error. Throws when the request fails.
+    """
 
 
 class InvalidChannelStateException(HarmonizeException):
-    pass
+    """
+    Represents an invalid channel state error. Throws when trying to move a player without a valid guild or channel.
+    """

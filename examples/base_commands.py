@@ -4,7 +4,7 @@ from disnake import Intents, ApplicationCommandInteraction
 from disnake.ext.commands import Bot, Param, slash_command, Cog
 
 from harmonize.connection import Pool, Node
-from harmonize.enums import CacheCapacity
+from harmonize.enums import CacheCapacity, LoopStatus
 from harmonize.objects.filters import Timescale
 from harmonize import Player
 
@@ -51,7 +51,10 @@ class Music(Cog):
     ) -> None:
         if load_search := await Pool.get_best_node().get_tracks(source + query):
             await interaction.response.defer(ephemeral=True)
-            player = await Player.connect_to_channel(interaction.author.voice.channel)
+
+            player: Player = cast(Player, interaction.guild.voice_client)
+            if not player:
+                player = await Player.connect_to_channel(interaction.author.voice.channel)
 
             player.queue.add(tracks=load_search.tracks[:3])
             await player.play()
@@ -151,11 +154,10 @@ class Music(Cog):
                 }
             )
     ) -> None:
-        loop = LoopStatus(status)
-
         vc: Player = cast(Player, interaction.guild.voice_client)
         if vc:
-            vc.queue.loop = loop
+            loop = LoopStatus(status)
+            vc.queue.set_loop(loop)
             return await interaction.response.send_message(f"Loop status set to {loop}")
         await interaction.response.send_message("Not connected")
 

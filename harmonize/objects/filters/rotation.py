@@ -6,29 +6,32 @@ __all__ = (
 
 
 class Rotation(Filter[float]):
+    """
+    Represents a rotation filter. Extended from :class:`harmonize.abstract.Filter`
+    """
+
     def __init__(self, rotation_hz: float = 0.0) -> None:
-        """
-        Initializes a new instance of the Rotation class.
-
-        Args:
-            rotation_hz (float, optional): The rotation frequency in hertz. Defaults to 0.0.
-
-        Returns:
-            None
-        """
         super().__init__(rotation_hz)
 
     def update(self, *, rotation_hz: float) -> None:
         """
         Updates the Rotation filter with a new rotation frequency.
 
-        Args:
-            rotation_hz (float): The new rotation frequency in hertz.
+        Note
+        ----
+            Rotation_hz must be bigger than or equal to 0
 
-        Raises:
+        Parameters
+        ----------
+            rotation_hz : float
+                The new rotation frequency in hertz.
+
+        Raises
+        ------
             ValueError: If rotation_hz is less than 0.
 
-        Returns:
+        Returns
+        -------
             None
         """
         rotation_hz = float(rotation_hz)
@@ -42,7 +45,8 @@ class Rotation(Filter[float]):
         """
         Converts the Rotation filter to a dictionary representation.
 
-        Returns:
+        Returns
+        -------
             dict[str, dict[str, float]]: A dictionary containing the rotation frequency in hertz.
         """
         return {'rotation': {'rotationHz': self.values}}

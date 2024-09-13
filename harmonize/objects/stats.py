@@ -11,6 +11,54 @@ __all__ = (
 
 
 class Stats:
+    """
+    Represents the statistics of a Lavalink node.
+
+    Attributes
+    ----------
+        is_fake : bool
+            Inducing whether statistics are fake or not
+
+        uptime : float
+            The uptime of the node in milliseconds.
+
+        players : int
+            Number of players connected to this node
+
+        playing_players : int
+            Number of players currently playing on this node
+
+        memory_free : int
+            The free memory in bytes.
+
+        memory_used : int
+            The used memory in bytes.
+
+        memory_allocated : int
+            The allocated memory in bytes.
+
+        memory_reservable : int
+            The reservable memory in bytes.
+
+        cpu_cores : int
+            The number of CPU cores.
+
+        system_load : float
+            The system load average.
+
+        lavalink_load : float
+            The Lavalink load average.
+
+        frames_sent : int
+            The number of frames sent by the node.
+
+        frames_nulled : int
+            The number of frames nulled by the node.
+
+        frames_deficit : int
+            The number of frames deficit by the node.
+    """
+
     __slots__ = (
         '_node',
         'is_fake',
@@ -26,21 +74,10 @@ class Stats:
         'lavalink_load',
         'frames_sent',
         'frames_nulled',
-        'frames_deficit',
-        'penalty'
+        'frames_deficit'
     )
 
     def __init__(self, node: Node, data: dict[str, any]) -> None:
-        """
-        Initializes a Stats object with the given node and data.
-
-        Args:
-            node (Node): The node associated with the stats.
-            data (dict[str, any]): A dictionary containing the stats data.
-
-        Returns:
-            None
-        """
         self._node = node
 
         self.is_fake: bool = data.get('isFake', False)
@@ -70,11 +107,14 @@ class Stats:
         """
         Creates an empty Stats object with default values.
 
-        Args:
-            node (Node): The node associated with the stats.
+        Parameters
+        ----------
+            node : :class:`harmonize.connection.Node`
+                The node associated with the stats.
 
-        Returns:
-            Stats: An empty Stats object.
+        Returns
+        -------
+            Stats
         """
         data = {
             'isFake': True,

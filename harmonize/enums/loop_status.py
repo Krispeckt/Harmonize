@@ -6,6 +6,9 @@ __all__ = (
 
 
 class LoopStatus(Enum):
+    """
+    Represents the loop status for a player queue.
+    """
     OFF = 0
     TRACK = 1
     QUEUE = 2

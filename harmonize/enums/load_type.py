@@ -6,6 +6,9 @@ __all__ = (
 
 
 class LoadType(Enum):
+    """
+    Represents the types of load requests.
+    """
     TRACK = 'track'
     PLAYLIST = 'playlist'
     SEARCH = 'search'
