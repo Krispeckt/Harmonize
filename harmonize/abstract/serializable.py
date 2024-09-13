@@ -28,11 +28,5 @@ class Serializable:
 
     @property
     def raw(self) -> dict:
-        """
-        A property that returns the raw representation of the object.
-
-        Returns:
-            dict: The raw representation of the object.
-        """
         # Implementation of the raw property goes here.
         return ...

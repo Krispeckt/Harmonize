@@ -124,7 +124,7 @@ class Track(Serializable):
         """
         Decodes a track from a given string representation.
 
-        Parameters:
+        Parameters
         -----------
             track : str
                 The string representation of the track to be decoded.
@@ -134,7 +134,7 @@ class Track(Serializable):
                 containing the decoded source-specific fields.
                 If not provided, the function will use the default decoders from DEFAULT_DECODER_MAPPING.
 
-        Returns:
+        Returns
         --------
             :class:`harmonize.objects.Track`
                 An instance of the Track class representing the decoded track.
