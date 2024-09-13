@@ -33,6 +33,22 @@ class Queue:
 
             Checks if two filters are not the same.
 
+        .. desribe:: x >= y
+
+            Checks if the first queue is greater or equal to the second queue.
+
+        .. describe:: x <= y
+
+            Checks if the first queue is less than or equal to the second queue.
+
+        .. describe:: x > y
+
+            Checks if the first queue is greater than the second queue.
+
+        .. describe:: x < y
+
+            Checks if the first queue is less than the second queue.
+
         .. describe:: for y in x
 
             Returns an iterator over the tracks in the queue.
@@ -257,3 +273,27 @@ class Queue:
 
     def __str__(self) -> str:
         return str(self._now)
+
+    def __le__(self, other: int | Queue) -> bool:
+        if isinstance(other, Queue):
+            return len(self) <= len(other)
+
+        return self.__lt__(other) or len(self) == other
+
+    def __lt__(self, other: int | Queue) -> bool:
+        if isinstance(other, Queue):
+            return len(self) < len(other)
+
+        return len(self) < other
+
+    def __ge__(self, other: int | Queue) -> bool:
+        if isinstance(other, Queue):
+            return len(self) >= len(other)
+
+        return self.__gt__(other) or len(self) == other
+
+    def __gt__(self, other: int | Queue) -> bool:
+        if isinstance(other, Queue):
+            return len(self) > len(other)
+
+        return len(self) > other
