@@ -51,7 +51,10 @@ class Music(Cog):
     ) -> None:
         if load_search := await Pool.get_best_node().get_tracks(source + query):
             await interaction.response.defer(ephemeral=True)
-            player = await Player.connect_to_channel(interaction.author.voice.channel)
+
+            player: Player = cast(Player, interaction.guild.voice_client)
+            if not player:
+                player = await Player.connect_to_channel(interaction.author.voice.channel)
 
             player.queue.add(tracks=load_search.tracks[:3])
             await player.play()

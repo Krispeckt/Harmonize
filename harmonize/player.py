@@ -299,10 +299,11 @@ class Player(VoiceProtocol):
 
             options['paused'] = pause
 
-        track = await self._queue._go_to_next(track)
+        if track := await self._queue._go_to_next(track):
+            options["encoded_track"] = track.encoded
+
         return await self._node.update_player(
             guild_id=self.guild.id,
-            encoded_track=track.encoded,
             **options
         )
 
