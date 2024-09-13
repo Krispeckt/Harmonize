@@ -215,8 +215,7 @@ class Transport:
                 break
             elif message.type in (
                     WSMsgType.CLOSED,
-                    WSMsgType.CLOSING,
-                    WSMsgType.CLOSE
+                    WSMsgType.CLOSING
             ):
                 close_code = message.data
                 self._node.client.dispatch("connection_lost", self._node.client.voice_clients)
