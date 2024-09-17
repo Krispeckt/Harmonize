@@ -33,7 +33,7 @@ class Queue:
 
             Checks if two filters are not the same.
 
-        .. desribe:: x >= y
+        .. describe:: x >= y
 
             Checks if the first queue is greater or equal to the second queue.
 

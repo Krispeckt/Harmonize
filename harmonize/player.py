@@ -150,7 +150,6 @@ class Player(VoiceProtocol):
 
         if data['session_id'] != self._voice_state.get('sessionId'):
             self._voice_state.update(sessionId=data['session_id'])
-
             await self._dispatch_voice_update()
 
     async def _dispatch_voice_update(self) -> None:
@@ -158,35 +157,28 @@ class Player(VoiceProtocol):
             await self._node.update_player(guild_id=self.guild.id, voice_state=self._voice_state)
             self._connection_event.set()
 
-    async def handle_event(self, reason: EndReason) -> None:
+    async def handle_event(self, data: dict[any, any]) -> None:
         """|coro|
-
-        Handles an event triggered by the player, such as a track finishing or a load failure.
 
         Note
         ----
-            This function is required for autoplay please do not touch it for personal use
+            This function is used in the processing of events within the player
 
         Parameters
         ----------
-            reason : :class:`harmonize.enums.EndReason`
-                The reason for the event.
+            data : dict[any, any]
+                The event data from lavalink. See
 
         Returns
         -------
             None
         """
-        if (
-                reason.value == EndReason.FINISHED.value
-                or reason.value == EndReason.LOAD_FAILED.value
-        ):
-            try:
+        match data["type"]:
+            case "TrackStuckEvent":
                 await self.play()
-            except RequestError as error:
-                logger.error(
-                    'Encountered a request error whilst '
-                    f'starting a new track on guild ({self.guild.id}) {error}'
-                )
+            case "TrackEndEvent":
+                if data["reason"] in ('finished', 'loadFailed'):
+                    await self.play()
 
     async def update_state(self, state: dict) -> None:
         """|coro|

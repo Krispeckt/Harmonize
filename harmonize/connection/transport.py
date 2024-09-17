@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from asyncio import sleep
 from typing import TYPE_CHECKING, Optional
 
@@ -17,7 +18,7 @@ from loguru import logger
 from harmonize.abstract.serializable import Serializable
 from harmonize.enums import NodeStatus, EndReason, Severity
 from harmonize.exceptions import AuthorizationError, NodeUnknownError, Forbidden, RequestError
-from harmonize.objects import Stats
+from harmonize.objects import Stats, Track
 
 if TYPE_CHECKING:
     from harmonize.connection.node import Node
@@ -97,9 +98,8 @@ class Transport:
                     f"was success to successfully connect/reconnect to Lavalink V4 after "
                     f'{retries} connection attempts.'
                 )
-                self.dispatch("node_ready", self._node)
 
-                await self._listen()
+                asyncio.run_coroutine_threadsafe(self._listen(), loop=asyncio.get_event_loop())
                 break
 
             if self._retries <= retries:
@@ -125,7 +125,7 @@ class Transport:
 
             await self._connect_back()
         except Exception as e:
-            logger.warning(f"Connection timeout to Lavalink V4: {e}")
+            logger.warning(f"An error ({type(e).__name__}) was thrown when connecting: {e}")
 
     async def _handle_event(self, data: dict[any, any]) -> None:
         player = self._node.players.get(int(data['guildId']))  # type: ignore
@@ -137,6 +137,11 @@ class Transport:
 
             return
 
+        try:
+            await player.handle_event(data)
+        except Exception as e:
+            logger.error(f'Player {player.guild.id} threw an error whilst handling event : {e}')
+
         if event_type == 'TrackStartEvent':
             self.dispatch(
                 "track_start",
@@ -144,12 +149,11 @@ class Transport:
                 player.queue.current
             )
         elif event_type == 'TrackEndEvent':
-            end_reason = EndReason(data['reason'])
             self.dispatch(
                 "track_end",
                 player,
-                player.queue.history[0],
-                end_reason
+                Track.from_dict(data["track"]),
+                EndReason(data["reason"])
             )
         elif event_type == 'TrackExceptionEvent':
             exception = data['exception']
@@ -170,15 +174,6 @@ class Transport:
             self.dispatch("discord_ws_closed", player, int(data['code']), data['reason'], bool(data['byRemote']))
         else:
             return self.dispatch("extra_event", event_type, player, data)
-
-        if player and event_type in (
-                'TrackStuckEvent',
-                'TrackEndEvent'
-        ):
-            try:
-                await player.handle_event(EndReason(data['reason']))
-            except Exception as e:
-                logger.error(f'Player {player.guild.id} threw an error whilst handling event : {e}')
 
     async def _handle_message(self, data: dict[any, any] | list[any]) -> None:
         if not isinstance(data, dict) or 'op' not in data:
