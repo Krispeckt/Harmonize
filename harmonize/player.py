@@ -9,10 +9,10 @@ from async_timeout import timeout as _timeout
 from disnake import VoiceProtocol, Client, VoiceState
 from loguru import logger
 
-from harmonize.abstract import Filter, BaseQueue
+from harmonize.abstract import Filter
 from harmonize.connection import Pool
-from harmonize.enums import EndReason, LoopStatus
-from harmonize.exceptions import RequestError, InvalidChannelStateException
+from harmonize.enums import LoopStatus
+from harmonize.exceptions import InvalidChannelStateException
 from harmonize.objects import Track, MISSING
 from harmonize.queue import Queue
 
