@@ -3,7 +3,6 @@ from __future__ import annotations
 from random import shuffle
 from typing import TYPE_CHECKING, Optional, overload, Iterator
 
-from harmonize.abstract import BaseQueue
 from harmonize.enums import LoopStatus
 from harmonize.objects import MISSING
 
@@ -16,7 +15,7 @@ __all__ = (
 )
 
 
-class Queue(BaseQueue):
+class Queue:
     """
     Represents a queue of tracks for a Discord voice player.
 

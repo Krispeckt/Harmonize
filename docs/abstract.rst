@@ -8,6 +8,3 @@ Abstract
 
 .. autoclass:: Serializable
     :members:
-
-.. autoclass:: BaseQueue
-    :members:

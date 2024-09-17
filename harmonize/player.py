@@ -99,7 +99,7 @@ class Player(VoiceProtocol):
         self.last_position: int = 0
         self.last_update: int = 0
 
-        self._queue: BaseQueue = Queue(self)
+        self._queue: Queue = Queue(self)
         self._filters: dict[str, Filter] = {}
 
         super().__init__(*args, **kwargs)
@@ -129,13 +129,13 @@ class Player(VoiceProtocol):
         return self._volume
 
     @property
-    def queue(self) -> BaseQueue:
+    def queue(self) -> Queue:
         return self._queue
 
     @queue.setter
-    def queue(self, value: BaseQueue) -> None:
-        if not isinstance(value, BaseQueue):
-            raise TypeError('Queue must be an instance of BaseQueue')
+    def queue(self, value: Queue) -> None:
+        if not isinstance(value, Queue):
+            raise TypeError('Queue must be an instance of Queue')
         self._queue = value
 
     @property
