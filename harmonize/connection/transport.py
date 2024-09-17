@@ -192,8 +192,8 @@ class Transport:
             if player := self._node.players.get(int(data['guildId'])):
                 await player.update_state(data['state'])
                 self.dispatch('player_update', player)
-            else:
-                await self._node.destroy_player(int(data['guildId']))
+            # else:
+            #     await self._node.destroy_player(int(data['guildId']))
         elif data["op"] == 'event':
             await self._handle_event(data)
         else:
