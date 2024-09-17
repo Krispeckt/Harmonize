@@ -255,7 +255,7 @@ class Queue:
             self._history.insert(0, old)
 
         self._current = track
-        return old
+        return track
 
     def __repr__(self) -> str:
         return (
