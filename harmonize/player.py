@@ -159,6 +159,7 @@ class Player(VoiceProtocol):
 
     async def handle_event(self, data: dict[any, any]) -> None:
         """|coro|
+        Handles events received from the data source.
 
         Note
         ----
@@ -167,7 +168,7 @@ class Player(VoiceProtocol):
         Parameters
         ----------
             data : dict[any, any]
-                The event data from lavalink. See
+                The event data from `Lavalink <https://lavalink.dev/api/websocket.html#event-types>`_
 
         Returns
         -------
