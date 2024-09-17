@@ -9,7 +9,7 @@ from async_timeout import timeout as _timeout
 from disnake import VoiceProtocol, Client, VoiceState
 from loguru import logger
 
-from harmonize.abstract import Filter
+from harmonize.abstract import Filter, BaseQueue
 from harmonize.connection import Pool
 from harmonize.enums import EndReason, LoopStatus
 from harmonize.exceptions import RequestError, InvalidChannelStateException
@@ -99,7 +99,7 @@ class Player(VoiceProtocol):
         self.last_position: int = 0
         self.last_update: int = 0
 
-        self._queue: Queue = Queue(self)
+        self._queue: BaseQueue = Queue(self)
         self._filters: dict[str, Filter] = {}
 
         super().__init__(*args, **kwargs)
@@ -129,8 +129,14 @@ class Player(VoiceProtocol):
         return self._volume
 
     @property
-    def queue(self) -> Queue:
+    def queue(self) -> BaseQueue:
         return self._queue
+
+    @queue.setter
+    def queue(self, value: BaseQueue) -> None:
+        if not isinstance(value, BaseQueue):
+            raise TypeError('Queue must be an instance of BaseQueue')
+        self._queue = value
 
     @property
     def filters(self) -> list[Filter]:
@@ -292,7 +298,7 @@ class Player(VoiceProtocol):
 
             options['paused'] = pause
 
-        if track := await self._queue._go_to_next(track):
+        if track := await self._queue.load_next(track):
             options["encoded_track"] = track.encoded
 
         return await self._node.update_player(
@@ -799,7 +805,14 @@ class Player(VoiceProtocol):
 
         Moves the player to a specified voice channel.
 
-        Args:
+        Note
+        ----
+            This method will clear the `_connection_event` event
+            and wait for the player to connect to the specified channel.
+            If the connection attempt times out or is cancelled, the player will be destroyed.
+
+        Parameters
+        ----------
             channel : VocalGuildChannel | None
                 The voice channel to move the player to. If `None`, the player will remain in its current channel.
             timeout : Optional[float]
@@ -820,13 +833,6 @@ class Player(VoiceProtocol):
         Raises
         ------
             InvalidChannelStateException: If the player tries to move without a valid guild or channel.
-
-        Note
-        -----
-            This method will clear the `_connection_event` event
-            and wait for the player to connect to the specified channel.
-            If the connection attempt times out or is cancelled, the player will be destroyed.
-
         """
         if not self.guild:
             raise InvalidChannelStateException("Player tried to move without a valid guild.")

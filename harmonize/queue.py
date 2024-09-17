@@ -3,6 +3,7 @@ from __future__ import annotations
 from random import shuffle
 from typing import TYPE_CHECKING, Optional, overload, Iterator
 
+from harmonize.abstract import BaseQueue
 from harmonize.enums import LoopStatus
 from harmonize.objects import MISSING
 
@@ -15,7 +16,7 @@ __all__ = (
 )
 
 
-class Queue:
+class Queue(BaseQueue):
     """
     Represents a queue of tracks for a Discord voice player.
 
@@ -211,7 +212,28 @@ class Queue:
         """
         self._now.reverse()
 
-    async def _go_to_next(self, track: Optional[Track] = MISSING) -> Optional[Track]:
+    async def load_next(self, track: Optional[Track] = MISSING) -> Optional[Track]:
+        """
+        Loads the next track in the queue and updates the current track.
+
+        Parameters
+        ----------
+            track : Optional[Track
+                The next track to load. Defaults to None.
+
+        Returns
+        -------
+            Optional[Track]
+                The previous current track if it was replaced, otherwise None.
+
+        Note
+        ----
+            - If the loop status is set to TRACK, the current track will be used as the next track if no other track is provided.
+
+            - If the loop status is set to QUEUE, the current track will be added to the end of the queue.
+
+            - If the queue is empty and no next track is provided, the player will stop.
+        """
         self._listened_count += 1
 
         old = self._current
@@ -234,7 +256,7 @@ class Queue:
             self._history.insert(0, old)
 
         self._current = track
-        return track
+        return old
 
     def __repr__(self) -> str:
         return (
