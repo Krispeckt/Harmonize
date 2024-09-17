@@ -171,6 +171,38 @@ class Transport:
             assert player.queue.current is not None
             self.dispatch("track_stuck", player, player.queue.current, int(data['thresholdMs']))
         elif event_type == 'WebSocketClosedEvent':
+            """
+            +------+---------------------------+----------------------------------------------------------+
+            | CODE | DESCRIPTION               | EXPLANATION                                              |
+            +======+===========================+==========================================================+
+            | 4001 | Unknown opcode            | You sent an invalid opcode.                              |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4002 | Failed to decode payload   | You sent an invalid payload in your identifying to the   |
+            |      |                           | Gateway.                                                 |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4003 | Not authenticated          | You sent a payload before identifying with the Gateway.  |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4004 | Authentication failed      | The token you sent in your identify payload is incorrect.|
+            +------+---------------------------+----------------------------------------------------------+
+            | 4005 | Already authenticated      | You sent more than one identify payload. Stahp.          |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4006 | Session no longer valid    | Your session is no longer valid.                         |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4009 | Session timeout            | Your session has timed out.                              |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4011 | Server not found           | We can't find the server you're trying to connect to.    |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4012 | Unknown protocol           | We didn't recognize the protocol you sent.               |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4014 | Disconnected               | Channel was deleted, you were kicked, voice server       |
+            |      |                           | changed, or the main gateway session was dropped.        |
+            |      |                           | Should not reconnect.                                    |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4015 | Voice server crashed       | The server crashed. Our bad! Try resuming.               |
+            +------+---------------------------+----------------------------------------------------------+
+            | 4016 | Unknown encryption mode    | We didn't recognize your encryption.                     |
+            +------+---------------------------+----------------------------------------------------------+
+            """
             self.dispatch("discord_ws_closed", player, int(data['code']), data['reason'], bool(data['byRemote']))
         else:
             return self.dispatch("extra_event", event_type, player, data)

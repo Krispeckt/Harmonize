@@ -50,7 +50,10 @@ An event listener in a cog.
 
         Called when an audio WebSocket (to Discord) is closed. This can happen for various reasons (normal and abnormal), e.g. when using an expired voice server update.
         4xxx codes are usually bad.
-        See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
+
+        .. note::
+
+            See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
 
 .. function:: on_harmonize_extra_event(event_type: str, player: harmonize.Player, data: str)
 
