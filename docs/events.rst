@@ -52,7 +52,35 @@ An event listener in a cog.
         4xxx codes are usually bad.
 
         .. note::
+            See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
 
+.. function:: on_harmonize_session_no_longer(player: harmonize.Player)
+
+        Called when an audio WebSocket (to Discord) is closed with code 4006.
+
+        .. note::
+            See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
+
+.. function:: on_harmonize_session_timeout(player: harmonize.Player)
+
+        Called when an audio WebSocket (to Discord) is closed with code 4009.
+
+        .. note::
+            See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
+
+.. function:: on_harmonize_voice_modification(player: harmonize.Player)
+
+        Called when an audio WebSocket (to Discord) is closed with code 4014.
+        E.g., changed the voice channel or kicked out of the channel
+
+        .. note::
+            See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
+
+.. function:: on_harmonize_voice_crashed(player: harmonize.Player)
+
+        Called when an audio WebSocket (to Discord) is closed with code 4015.
+
+        .. note::
             See the `Discord Docs <https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes>`_.
 
 .. function:: on_harmonize_extra_event(event_type: str, player: harmonize.Player, data: str)

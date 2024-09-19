@@ -73,9 +73,18 @@ class Queue:
 
             Returns a string representation of the queue.
 
+    Note
+    ----
+        The ``history`` and ``tracks`` attributes give the ORIGINAL OBJECT, you can change them at will.
+
     Tip
     ---
-        The ``history`` and ``tracks`` attributes give the ORIGINAL OBJECT, you can change them at will
+        You can implement your own track queue and hook it to the player
+
+        .. code-block:: python3
+
+            player = Player.connect_to_channel(voice)
+            player.queue = YourQueue()
 
     Attributes
     ----------

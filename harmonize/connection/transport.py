@@ -21,6 +21,7 @@ from harmonize.exceptions import AuthorizationError, NodeUnknownError, Forbidden
 from harmonize.objects import Stats, Track
 
 if TYPE_CHECKING:
+    from harmonize import Player
     from harmonize.connection.node import Node
 
 __all__ = (
@@ -127,6 +128,17 @@ class Transport:
         except Exception as e:
             logger.warning(f"An error ({type(e).__name__}) was thrown when connecting: {e}")
 
+    def _handle_ws_closed_event(self, player: Player, data: dict[any, any]) -> None:
+        match int(data["code"]):
+            case 4006:
+                self.dispatch("session_no_longer", player)
+            case 4009:
+                self.dispatch("session_timeout", player)
+            case 4014:
+                self.dispatch("voice_modification", player)
+            case 4015:
+                self.dispatch("voice_crashed", player)
+
     async def _handle_event(self, data: dict[any, any]) -> None:
         player = self._node.players.get(int(data['guildId']))  # type: ignore
         event_type = data['type']
@@ -177,33 +189,34 @@ class Transport:
             +======+===========================+==========================================================+
             | 4001 | Unknown opcode            | You sent an invalid opcode.                              |
             +------+---------------------------+----------------------------------------------------------+
-            | 4002 | Failed to decode payload   | You sent an invalid payload in your identifying to the   |
+            | 4002 | Failed to decode payload  | You sent an invalid payload in your identifying to the   |
             |      |                           | Gateway.                                                 |
             +------+---------------------------+----------------------------------------------------------+
-            | 4003 | Not authenticated          | You sent a payload before identifying with the Gateway.  |
+            | 4003 | Not authenticated         | You sent a payload before identifying with the Gateway.  |
             +------+---------------------------+----------------------------------------------------------+
-            | 4004 | Authentication failed      | The token you sent in your identify payload is incorrect.|
+            | 4004 | Authentication failed     | The token you sent in your identify payload is incorrect.|
             +------+---------------------------+----------------------------------------------------------+
-            | 4005 | Already authenticated      | You sent more than one identify payload. Stahp.          |
+            | 4005 | Already authenticated     | You sent more than one identify payload. Stahp.          |
             +------+---------------------------+----------------------------------------------------------+
-            | 4006 | Session no longer valid    | Your session is no longer valid.                         |
+            | 4006 | Session no longer valid   | Your session is no longer valid.                         |
             +------+---------------------------+----------------------------------------------------------+
-            | 4009 | Session timeout            | Your session has timed out.                              |
+            | 4009 | Session timeout           | Your session has timed out.                              |
             +------+---------------------------+----------------------------------------------------------+
-            | 4011 | Server not found           | We can't find the server you're trying to connect to.    |
+            | 4011 | Server not found          | We can't find the server you're trying to connect to.    |
             +------+---------------------------+----------------------------------------------------------+
-            | 4012 | Unknown protocol           | We didn't recognize the protocol you sent.               |
+            | 4012 | Unknown protocol          | We didn't recognize the protocol you sent.               |
             +------+---------------------------+----------------------------------------------------------+
-            | 4014 | Disconnected               | Channel was deleted, you were kicked, voice server       |
+            | 4014 | Disconnected              | Channel was deleted, you were kicked, voice server       |
             |      |                           | changed, or the main gateway session was dropped.        |
             |      |                           | Should not reconnect.                                    |
             +------+---------------------------+----------------------------------------------------------+
-            | 4015 | Voice server crashed       | The server crashed. Our bad! Try resuming.               |
+            | 4015 | Voice server crashed      | The server crashed. Our bad! Try resuming.               |
             +------+---------------------------+----------------------------------------------------------+
-            | 4016 | Unknown encryption mode    | We didn't recognize your encryption.                     |
+            | 4016 | Unknown encryption mode   | We didn't recognize your encryption.                     |
             +------+---------------------------+----------------------------------------------------------+
             """
             self.dispatch("discord_ws_closed", player, int(data['code']), data['reason'], bool(data['byRemote']))
+            self._handle_ws_closed_event(player, data)
         else:
             return self.dispatch("extra_event", event_type, player, data)
 
@@ -224,8 +237,6 @@ class Transport:
             if player := self._node.players.get(int(data['guildId'])):
                 await player.update_state(data['state'])
                 self.dispatch('player_update', player)
-            # else:
-            #     await self._node.destroy_player(int(data['guildId']))
         elif data["op"] == 'event':
             await self._handle_event(data)
         else:

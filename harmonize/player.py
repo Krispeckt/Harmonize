@@ -12,7 +12,7 @@ from loguru import logger
 from harmonize.abstract import Filter
 from harmonize.connection import Pool
 from harmonize.enums import LoopStatus
-from harmonize.exceptions import InvalidChannelStateException
+from harmonize.exceptions import InvalidChannelStateException, RequestError
 from harmonize.objects import Track, MISSING
 from harmonize.queue import Queue
 
@@ -35,9 +35,6 @@ class Player(VoiceProtocol):
     ----------
         node : :class:`harmonize.connection.Node`
             The node the player is connected to.
-
-        connection_event : :class:`asyncio.Event`
-            An event triggered when the player's connection state changes.
 
         voice_state : dict[str, any]
             The current voice state of the player.
@@ -82,6 +79,7 @@ class Player(VoiceProtocol):
 
     def __call__(self, client: Client, channel: VocalGuildChannel) -> Player:
         super().__init__(client, channel)
+        self._guild = channel.guild
         return self
 
     def __init__(self, *args, **kwargs) -> None:
@@ -151,8 +149,11 @@ class Player(VoiceProtocol):
         await self._dispatch_voice_update()
 
     async def on_voice_state_update(self, data: dict) -> None:
-        if not data['channel_id']:
+        if not (channel := int(data["channel_id"])):
             return await self.disconnect(force=True)
+
+        self._connected = True
+        self.channel = self.client.get_channel(channel)  # type: ignore
 
         if data['session_id'] != self._voice_state.get('sessionId'):
             self._voice_state.update(sessionId=data['session_id'])
@@ -160,8 +161,12 @@ class Player(VoiceProtocol):
 
     async def _dispatch_voice_update(self) -> None:
         if {'sessionId', 'endpoint', 'token'} == self._voice_state.keys():
-            await self._node.update_player(guild_id=self.guild.id, voice_state=self._voice_state)
-            self._connection_event.set()
+            try:
+                await self._node.update_player(guild_id=self.guild.id, voice_state=self._voice_state)
+            except RequestError:
+                await self.disconnect(force=True)
+            else:
+                self._connection_event.set()
 
     async def handle_event(self, data: dict[any, any]) -> None:
         """|coro|
