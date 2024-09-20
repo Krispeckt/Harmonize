@@ -191,7 +191,7 @@ class Queue:
         -------
             None
         """
-        if load_result := list(args).pop():
+        if args and (load_result := list(args).pop()):
             return self._now.append({
                 "playlist": load_result.playlist_info,
                 "tracks": load_result.tracks
