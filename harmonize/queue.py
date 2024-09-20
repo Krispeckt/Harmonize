@@ -7,7 +7,7 @@ from harmonize.enums import LoopStatus
 from harmonize.objects import MISSING
 
 if TYPE_CHECKING:
-    from harmonize.objects import Track
+    from harmonize.objects import Track, PlaylistInfo, LoadResult
     from harmonize import Player
 
 __all__ = (
@@ -33,7 +33,7 @@ class Queue:
 
             Checks if two filters are not the same.
 
-        .. desribe:: x >= y
+        .. describe:: x >= y
 
             Checks if the first queue is greater or equal to the second queue.
 
@@ -75,15 +75,23 @@ class Queue:
 
     Tip
     ---
-        The ``history`` and ``tracks`` attributes give the ORIGINAL OBJECT, you can change them at will
+        You can implement your own track queue and hook it to the player
+
+        .. code-block:: python3
+
+            player = Player.connect_to_channel(voice)
+            player.queue = YourQueue()
 
     Attributes
     ----------
         current : Optional[:class:`harmonize.objects.Track`]
             The currently playing track in the queue.
 
-        tracks : list[:class:`harmonize.objects.Track`]
-            The list of tracks currently in the queue.
+        items : list[:class:`harmonize.objects.Track` | dict[str, :class:`harmonize.objects.PlaylistInfo` | list[:class:`harmonize.objects.Track`]]
+            The list of tracks or playlists currently in the queue.
+
+        tracks : list[:class:`harmonize.objects.Track]
+            Only tracks in the queue.
 
         history : list[:class:`harmonize.objects.Track`]
             The list of tracks that have been played in the queue.
@@ -99,8 +107,9 @@ class Queue:
         self._loop: LoopStatus = LoopStatus(0)
         self._history: list[Track] = []
         self._listened_count = 0
-        self._now: list[Track] = []
+        self._now: list[Track | dict[str, PlaylistInfo | list[Track]]] = []
         self._current: Optional[Track] = None
+        self._current_playlist: Optional[PlaylistInfo] = None
         self._player: Player = player
 
     @property
@@ -112,7 +121,7 @@ class Queue:
         return self._history
 
     @property
-    def tracks(self) -> list[Track]:
+    def items(self) -> list[Track | dict[str, PlaylistInfo | list[Track]]]:
         return self._now
 
     @property
@@ -122,6 +131,15 @@ class Queue:
     @property
     def loop(self) -> LoopStatus:
         return self._loop
+
+    @property
+    def tracks(self) -> list[Track]:
+        def unpack(item: dict[str, PlaylistInfo | list[Track]] | Track) -> list[Track]:
+            if isinstance(item, dict) and "tracks" in item:
+                return item["tracks"]
+            return [item]
+
+        return [track for sublist in map(unpack, self._now) for track in sublist]
 
     def set_loop(self, value: LoopStatus, /) -> None:
         """
@@ -146,19 +164,27 @@ class Queue:
         self._loop = value
 
     @overload
-    def add(self, track: Track) -> None:
+    def add(self, search: LoadResult, /) -> None:
         ...
 
     @overload
-    def add(self, tracks: list[Track]) -> None:
+    def add(self, *, track: Track) -> None:
         ...
 
-    def add(self, **kwargs: Track | list[Track]) -> None:
+    @overload
+    def add(self, *, tracks: list[Track]) -> None:
+        ...
+
+    def add(self, *args: LoadResult, **kwargs: Track | list[Track]) -> None:
         """
         Adds a track or multiple tracks to the queue.
 
         Parameters
         ----------
+            *args : :class:`harmonize.objects.LoadResult`
+
+                A single :class:`harmonize.objects.LoadResult` object to add to the queue.
+
             **kwargs : :class:`harmonize.objects.Track` | list[:class:`harmonize.objects.Track`]
 
                 'track' (:class:`harmonize.objects.Track`): A single track to add to the queue.
@@ -173,6 +199,12 @@ class Queue:
         -------
             None
         """
+        if args and (load_result := list(args).pop()):
+            return self._now.append({
+                "playlist": load_result.playlist_info,
+                "tracks": load_result.tracks
+            })
+
         if 'track' in kwargs:
             self._now.append(kwargs.pop("track"))
         elif 'tracks' in kwargs:
@@ -211,11 +243,32 @@ class Queue:
         """
         self._now.reverse()
 
-    async def _go_to_next(self, track: Optional[Track] = MISSING) -> Optional[Track]:
+    async def load_next(self, track: Optional[Track] = MISSING) -> Optional[Track]:
+        """
+        Loads the next track in the queue and updates the current track.
+
+        Parameters
+        ----------
+            track : Optional[Track
+                The next track to load. Defaults to None.
+
+        Returns
+        -------
+            Optional[Track]
+                The previous current track if it was replaced, otherwise None.
+
+        Note
+        ----
+            - If the loop status is set to TRACK, the current track will be used as the next track if no other track is provided.
+
+            - If the loop status is set to QUEUE, the current track will be added to the end of the queue.
+
+            - If the queue is empty and no next track is provided, the player will stop.
+        """
         self._listened_count += 1
 
         old = self._current
-        if self.loop.value > 0 and self._current:
+        if self.loop != LoopStatus.OFF and self._current:
             match self.loop:
                 case LoopStatus.TRACK:
                     if track is MISSING:
@@ -228,7 +281,18 @@ class Queue:
                 await self._player.stop()
                 return self._player.dispatch('queue_end', self._player)
 
-            track = self._now.pop(0)
+            if isinstance(self._now[0], dict):
+                data: dict[str, PlaylistInfo | list[Track]] = self._now[0].copy()
+                if not (tracks := data["tracks"]):
+                    self._now.pop(0)
+                    if not self._now:
+                        await self._player.stop()
+                        return self._player.dispatch('queue_end', self._player)
+                else:
+                    self._current_playlist = data["playlist"]
+                    track = tracks.pop(0)
+            else:
+                track = self._now.pop(0)
 
         if old:
             self._history.insert(0, old)
@@ -246,7 +310,7 @@ class Queue:
         )
 
     def __len__(self) -> int:
-        return len(self._now)
+        return sum(len(obj["tracks"]) if isinstance(obj, dict) else 1 for obj in self._now)
 
     def __getitem__(self, index: int) -> Track:
         return self._now[index]

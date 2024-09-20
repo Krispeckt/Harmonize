@@ -26,7 +26,7 @@ __all__ = (
 
 class Node:
     """Represents a lavalink node
-    
+
     Operations
     ----------
         .. describe:: x == y
@@ -40,7 +40,7 @@ class Node:
         .. describe:: hash(x)
 
             Return the node's hash.
-    
+
     Attributes
     ----------
         identifier : str
@@ -77,15 +77,6 @@ class Node:
 
     @classmethod
     def _load_cache(cls, capacity: int) -> None:
-        """
-        Initializes the cache with the specified capacity.
-
-        Args:
-            capacity (int): The capacity of the cache.
-
-        Returns:
-            None
-        """
         if cls.__cache is None:
             cls.__cache = LFUCache(capacity=capacity)
 
@@ -497,7 +488,7 @@ class Node:
 
     async def get_players(self) -> list[dict[str, any]]:
         """|coro|
-        
+
         Retrieves a list of players associated with the session ID.
 
         Returns
@@ -540,9 +531,9 @@ class Node:
             **kwargs
     ) -> Optional[dict[str, any]]:
         """|coro|
-        
+
         Updates the state of a player with the given guild ID.
-    
+
         Parameters
         ----------
         guild_id : Union[str, int]
@@ -572,12 +563,12 @@ class Node:
             If not specified, no additional user data will be associated.
         **kwargs
             Additional keyword arguments to pass to the request.
-    
+
         Returns
         -------
         Optional[dict[str, any]]
             The updated player information, or None if no update was made.
-    
+
         Raises
         ------
             InvalidSession

@@ -11,8 +11,8 @@ from loguru import logger
 
 from harmonize.abstract import Filter
 from harmonize.connection import Pool
-from harmonize.enums import EndReason, LoopStatus
-from harmonize.exceptions import RequestError, InvalidChannelStateException
+from harmonize.enums import LoopStatus
+from harmonize.exceptions import InvalidChannelStateException, RequestError
 from harmonize.objects import Track, MISSING
 from harmonize.queue import Queue
 
@@ -35,9 +35,6 @@ class Player(VoiceProtocol):
     ----------
         node : :class:`harmonize.connection.Node`
             The node the player is connected to.
-
-        connection_event : :class:`asyncio.Event`
-            An event triggered when the player's connection state changes.
 
         voice_state : dict[str, any]
             The current voice state of the player.
@@ -82,6 +79,7 @@ class Player(VoiceProtocol):
 
     def __call__(self, client: Client, channel: VocalGuildChannel) -> Player:
         super().__init__(client, channel)
+        self._guild = channel.guild
         return self
 
     def __init__(self, *args, **kwargs) -> None:
@@ -132,6 +130,12 @@ class Player(VoiceProtocol):
     def queue(self) -> Queue:
         return self._queue
 
+    @queue.setter
+    def queue(self, value: Queue) -> None:
+        if not isinstance(value, Queue):
+            raise TypeError('Queue must be an instance of Queue')
+        self._queue = value
+
     @property
     def filters(self) -> list[Filter]:
         return list(self._filters.values())
@@ -145,48 +149,48 @@ class Player(VoiceProtocol):
         await self._dispatch_voice_update()
 
     async def on_voice_state_update(self, data: dict) -> None:
-        if not data['channel_id']:
+        if not (channel := int(data["channel_id"])):
             return await self.disconnect(force=True)
+
+        self._connected = True
+        self.channel = self.client.get_channel(channel)  # type: ignore
 
         if data['session_id'] != self._voice_state.get('sessionId'):
             self._voice_state.update(sessionId=data['session_id'])
-
             await self._dispatch_voice_update()
 
     async def _dispatch_voice_update(self) -> None:
         if {'sessionId', 'endpoint', 'token'} == self._voice_state.keys():
-            await self._node.update_player(guild_id=self.guild.id, voice_state=self._voice_state)
-            self._connection_event.set()
+            try:
+                await self._node.update_player(guild_id=self.guild.id, voice_state=self._voice_state)
+            except RequestError:
+                await self.disconnect(force=True)
+            else:
+                self._connection_event.set()
 
-    async def handle_event(self, reason: EndReason) -> None:
+    async def handle_event(self, data: dict[any, any]) -> None:
         """|coro|
-
-        Handles an event triggered by the player, such as a track finishing or a load failure.
+        Handles events received from the data source.
 
         Note
         ----
-            This function is required for autoplay please do not touch it for personal use
+            This function is used in the processing of events within the player
 
         Parameters
         ----------
-            reason : :class:`harmonize.enums.EndReason`
-                The reason for the event.
+            data : dict[any, any]
+                The event data from `Lavalink <https://lavalink.dev/api/websocket.html#event-types>`_
 
         Returns
         -------
             None
         """
-        if (
-                reason.value == EndReason.FINISHED.value
-                or reason.value == EndReason.LOAD_FAILED.value
-        ):
-            try:
+        match data["type"]:
+            case "TrackStuckEvent":
                 await self.play()
-            except RequestError as error:
-                logger.error(
-                    'Encountered a request error whilst '
-                    f'starting a new track on guild ({self.guild.id}) {error}'
-                )
+            case "TrackEndEvent":
+                if data["reason"] in ('finished', 'loadFailed'):
+                    await self.play()
 
     async def update_state(self, state: dict) -> None:
         """|coro|
@@ -299,7 +303,7 @@ class Player(VoiceProtocol):
 
             options['paused'] = pause
 
-        if track := await self._queue._go_to_next(track):
+        if track := await self._queue.load_next(track):
             options["encoded_track"] = track.encoded
 
         return await self._node.update_player(
@@ -774,8 +778,8 @@ class Player(VoiceProtocol):
         except (AttributeError, KeyError):
             pass
 
-        del self._node.players[self.guild.id]
-        await self._node.destroy_player(self.guild.id)
+        if self.node.players.pop(self.guild.id, None):
+            await self._node.destroy_player(self.guild.id)
 
     async def disconnect(self, **kwargs: any) -> None:
         """|coro|
@@ -806,7 +810,14 @@ class Player(VoiceProtocol):
 
         Moves the player to a specified voice channel.
 
-        Args:
+        Note
+        ----
+            This method will clear the `_connection_event` event
+            and wait for the player to connect to the specified channel.
+            If the connection attempt times out or is cancelled, the player will be destroyed.
+
+        Parameters
+        ----------
             channel : VocalGuildChannel | None
                 The voice channel to move the player to. If `None`, the player will remain in its current channel.
             timeout : Optional[float]
@@ -827,13 +838,6 @@ class Player(VoiceProtocol):
         Raises
         ------
             InvalidChannelStateException: If the player tries to move without a valid guild or channel.
-
-        Note
-        -----
-            This method will clear the `_connection_event` event
-            and wait for the player to connect to the specified channel.
-            If the connection attempt times out or is cancelled, the player will be destroyed.
-
         """
         if not self.guild:
             raise InvalidChannelStateException("Player tried to move without a valid guild.")
