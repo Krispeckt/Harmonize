@@ -91,8 +91,11 @@ class Queue:
         current : Optional[:class:`harmonize.objects.Track`]
             The currently playing track in the queue.
 
-        tracks : list[:class:`harmonize.objects.Track`]
-            The list of tracks currently in the queue.
+        items : list[:class:`harmonize.objects.Track` | dict[str, :class:`harmonize.objects.PlaylistInfo` | list[:class:`harmonize.objects.Track`]]
+            The list of tracks or playlists currently in the queue.
+
+        tracks : list[:class:`harmonize.objects.Track]
+            Only tracks in the queue.
 
         history : list[:class:`harmonize.objects.Track`]
             The list of tracks that have been played in the queue.
@@ -122,7 +125,7 @@ class Queue:
         return self._history
 
     @property
-    def tracks(self) -> list[Track]:
+    def items(self) -> list[Track | dict[str, PlaylistInfo | list[Track]]]:
         return self._now
 
     @property
@@ -132,6 +135,15 @@ class Queue:
     @property
     def loop(self) -> LoopStatus:
         return self._loop
+
+    @property
+    def tracks(self) -> list[Track]:
+        def unpack(item: dict[str, PlaylistInfo | list[Track]] | Track) -> list[Track]:
+            if isinstance(item, dict) and "tracks" in item:
+                return item["tracks"]
+            return [item]
+
+        return [track for sublist in map(unpack, self._now) for track in sublist]
 
     def set_loop(self, value: LoopStatus, /) -> None:
         """
