@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 name = "harmonize.py"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Krista"]
 description = "A robust and powerful, fully asynchronous Lavalink wrapper built for disnake in Python."
 readme = "README.md"

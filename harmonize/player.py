@@ -778,8 +778,8 @@ class Player(VoiceProtocol):
         except (AttributeError, KeyError):
             pass
 
-        del self._node.players[self.guild.id]
-        await self._node.destroy_player(self.guild.id)
+        if self.node.players.pop(self.guild.id, None):
+            await self._node.destroy_player(self.guild.id)
 
     async def disconnect(self, **kwargs: any) -> None:
         """|coro|
