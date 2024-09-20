@@ -302,7 +302,7 @@ class Queue:
         )
 
     def __len__(self) -> int:
-        return len(self._now)
+        return sum(len(obj["tracks"]) if isinstance(obj, dict) else 1 for obj in self._now)
 
     def __getitem__(self, index: int) -> Track:
         return self._now[index]
